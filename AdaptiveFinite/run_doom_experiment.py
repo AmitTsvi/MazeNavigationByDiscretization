@@ -15,6 +15,11 @@ SAVE = False
 TARGET_STATE = tuple([1040.0, -352.0, 0.0])  # TODO: try to get this auto
 TARGET_REWARD = 0.0
 
+def norm_x(x):
+    return (x-min_x)/(max_x-min_x)
+
+def norm_y(y):
+    return (y-min_y)/(max_y-min_y)
 
 def select_action(state, h):
     raw_action = agent.pick_action(state, h)
@@ -151,6 +156,17 @@ if __name__ == "__main__":
         if PLOT and i % plot_every == 0:
             plt.savefig("Episode" + str(i))
             plt.close()
+
+        if PLOT and i % plot_every == 0:
+            fig = plt.figure()
+            tree = agent.tree_list[20]
+            tree.plot(fig)
+            ax = plt.gca()
+            for s in dummy_state.sectors:
+                for l in s.lines:
+                    if l.is_blocking:
+                        ax.plot([norm_x(l.x1), norm_x(l.x2)], [norm_y(l.y1), norm_y(l.y2)], color='black', linewidth=2)
+            fig.savefig('AdaptiveDiscretization_Step#20_Episode#'+str(i))
 
         # TODO: plot a continuous graph of balls' n_visits
         # if PLOT and i % plot_every == 0:
