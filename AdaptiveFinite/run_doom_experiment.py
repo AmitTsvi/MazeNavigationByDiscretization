@@ -8,7 +8,7 @@ import datetime
 import seaborn as sns
 import copy
 
-DEFAULT_CONFIG = "../../../scenarios/my_way_home_allpoints.cfg"
+DEFAULT_CONFIG = "../scenarios/my_way_home_allpoints.cfg"
 PLOT = True
 LOAD = False
 SAVE = False
