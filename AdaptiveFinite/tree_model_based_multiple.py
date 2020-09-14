@@ -30,14 +30,16 @@ class Node():
         # each with half the radius
     def split_node(self, flag, epLen):
         #second numvisits 0 if flag false
-        if flag == False:
+        if flag == False:  # TODO: which flag value do we need?
             a = self.qVal
             b = self.rEst
             c = self.pEst
+            e = self.num_visits
         else:
-            a = epLen
+            a = epLen  # TODO: change to rmax (need to pass rmax value: agent->tree->node
             b = 0
             c = np.zeros(len(self.pEst)).tolist()
+            e = 0
         # TODO: ORG start to replace
         # child_1 = Node(a,b,list.copy(c), self.num_visits, self.num_visits,
         #                self.num_splits+1, (self.state_val[0]-self.radius/2, self.state_val[1] - self.radius/2), (self.action_val[0]-self.radius/2, self.action_val[1] - self.radius/2), self.radius*(1/2))
@@ -77,7 +79,7 @@ class Node():
         # TODO: ORG end to replace
         # Amit: should be replaced with: (for our 3d state space and 1d action space)
         rh = self.radius/2  # TODO: check why num_unique_visits isn't 0
-        self.children = [Node(a,b,list.copy(c), self.num_visits, self.num_visits, self.num_splits+1,
+        self.children = [Node(a,b,list.copy(c), self.num_visits, e, self.num_splits+1,
                               (self.state_val[0]+k0*rh, self.state_val[1]+k1*rh, self.state_val[2]+k2*rh),
                               (self.action_val[0]+k3*rh,), rh) for k0 in [-1,1] for k1 in [-1,1] for k2 in [-1,1] for k3 in [-1, 1]]
         return self.children

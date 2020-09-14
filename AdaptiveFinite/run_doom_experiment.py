@@ -54,8 +54,9 @@ def find_maze_borders(state):
 
 
 if __name__ == "__main__":
-    epLen = 420
-    nEps = 400
+    change_tree = 20  # TODO: 420%change_tree should be 0
+    epLen = int(420/change_tree)
+    nEps = 2000
     numIters = 25
     scaling = 0
     alpha = 0
@@ -63,6 +64,7 @@ if __name__ == "__main__":
     R_MAX = 1.0
     M_VISITS_TO_KNOWN = 1
     VALUE_ITERATIONS = 1
+
 
     # Init env
     parser = ArgumentParser("ViZDoom example showing how to use information about objects and map.")
@@ -105,6 +107,7 @@ if __name__ == "__main__":
         state = game.get_state()
         final_state = 0
         total_reward = 0
+        t = 0
         h = 0
         while not game.is_episode_finished():
             # Gets the state
@@ -123,7 +126,9 @@ if __name__ == "__main__":
                 new_state = game.get_state()
                 new_bucket = state_to_bucket(new_state)
                 agent.update_obs(bucket, action, reward, new_bucket, h)
-            h = h + 1
+            t = t + 1
+            if t % change_tree == 0:
+                h = h + 1
 
             print("State #" + str(state.number))
             final_state = state.number
@@ -141,11 +146,12 @@ if __name__ == "__main__":
 
                 # print("=====================")
                 # print("Sectors:")
-                for s in state.sectors:
-                    # Plot sector on map
-                    for l in s.lines:
-                        if l.is_blocking:
-                            plt.plot([l.x1, l.x2], [l.y1, l.y2], color='black', linewidth=2)
+                if h == 1:
+                    for s in state.sectors:
+                        # Plot sector on map
+                        for l in s.lines:
+                            if l.is_blocking:
+                                plt.plot([l.x1, l.x2], [l.y1, l.y2], color='black', linewidth=2)
                 plt.draw()
                 plt.pause(0.001)
         for j in range(VALUE_ITERATIONS):
@@ -158,15 +164,17 @@ if __name__ == "__main__":
             plt.close()
 
         if PLOT and i % plot_every == 0:
-            fig = plt.figure()
-            tree = agent.tree_list[20]
-            tree.plot(fig)
-            ax = plt.gca()
-            for s in dummy_state.sectors:
-                for l in s.lines:
-                    if l.is_blocking:
-                        ax.plot([norm_x(l.x1), norm_x(l.x2)], [norm_y(l.y1), norm_y(l.y2)], color='black', linewidth=2)
-            fig.savefig('AdaptiveDiscretization_Step#20_Episode#'+str(i))
+            for h in [0, 10, 20]:
+                fig = plt.figure()
+                tree = agent.tree_list[h]
+                tree.plot(fig)
+                ax = plt.gca()
+                for s in dummy_state.sectors:
+                    for l in s.lines:
+                        if l.is_blocking:
+                            ax.plot([norm_x(l.x1), norm_x(l.x2)], [norm_y(l.y1), norm_y(l.y2)], color='black', linewidth=2)
+                fig.savefig('AdaptiveDiscretization_Tree#'+str(h)+'_Episode#'+str(i))
+                plt.close()
 
         # TODO: plot a continuous graph of balls' n_visits
         # if PLOT and i % plot_every == 0:
