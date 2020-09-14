@@ -15,11 +15,23 @@ SAVE = False
 TARGET_STATE = tuple([1040.0, -352.0, 0.0])  # TODO: try to get this auto
 TARGET_REWARD = 0.0
 
+
+def add_obs_to_heat_map(state, action):
+    new_state = (state.game_variables[0], state.game_variables[1], state.game_variables[2])
+    x = int((new_state[0]-min_x) / disc_diff)
+    y = int((new_state[1]-min_y) / disc_diff)
+    theta = int((new_state[2]) / disc_angle)
+    bucket = tuple([x, y, theta])
+    n_visits[bucket + (action,)] += 1
+
+
 def norm_x(x):
     return (x-min_x)/(max_x-min_x)
 
+
 def norm_y(y):
     return (y-min_y)/(max_y-min_y)
+
 
 def select_action(state, h):
     raw_action = agent.pick_action(state, h)
@@ -54,9 +66,9 @@ def find_maze_borders(state):
 
 
 if __name__ == "__main__":
-    change_tree = 20  # TODO: 420%change_tree should be 0
+    change_tree = 1  # TODO: 420%change_tree should be 0
     epLen = int(420/change_tree)
-    nEps = 2000
+    nEps = 20000
     numIters = 25
     scaling = 0
     alpha = 0
@@ -96,6 +108,16 @@ if __name__ == "__main__":
     dummy_state = game.get_state()
     max_x, min_x, max_y, min_y = find_maze_borders(dummy_state)
 
+    # For Heat Map
+    disc_diff = 20.0
+    min_angle = 0
+    max_angle = 360
+    disc_angle = 90
+    NUM_ACTIONS = len(actions)
+    NUM_BUCKETS = (
+    int((max_x - min_x) / disc_diff), int((max_y - min_y) / disc_diff), int((max_angle - min_angle) / disc_angle))
+    n_visits = np.zeros(NUM_BUCKETS + (NUM_ACTIONS,), dtype=float)
+
     agent = AdaptiveModelBasedDiscretization(epLen, nEps, scaling, alpha, False, 2*R_MAX)  # TODO: RMAX or 2*RMAX
 
     for i in range(nEps):
@@ -116,6 +138,7 @@ if __name__ == "__main__":
             action = select_action(bucket, h)
             reward = game.make_action(actions[action], ticks)
             total_reward += reward
+            add_obs_to_heat_map(state, action)
             if game.is_episode_finished() and reward > TARGET_REWARD:
                 dummy_state.game_variables[0] = TARGET_STATE[0]
                 dummy_state.game_variables[1] = TARGET_STATE[1]
@@ -173,16 +196,16 @@ if __name__ == "__main__":
                     for l in s.lines:
                         if l.is_blocking:
                             ax.plot([norm_x(l.x1), norm_x(l.x2)], [norm_y(l.y1), norm_y(l.y2)], color='black', linewidth=2)
-                fig.savefig('AdaptiveDiscretization_Tree#'+str(h)+'_Episode#'+str(i))
+                fig.savefig('AdaptiveDiscretization_Episode#'+str(i)+'_Tree#'+str(h))
                 plt.close()
 
         # TODO: plot a continuous graph of balls' n_visits
-        # if PLOT and i % plot_every == 0:
-        #     sns.set()
-        #     ax = sns.heatmap(np.transpose(np.sum(n_visits, axis=(2, 3))))
-        #     fig = ax.get_figure()
-        #     fig.savefig("Episode"+str(i)+"_HeatMap")
-        #     plt.close()
+        if PLOT and i % plot_every == 0:
+            sns.set()
+            ax = sns.heatmap(np.transpose(np.sum(n_visits, axis=(2, 3))))
+            fig = ax.get_figure()
+            fig.savefig("Episode#"+str(i)+"_HeatMap")
+            plt.close()
         # TODO: plot a graph of the space's division to balls
         # if i == 0:
         #     plt.show()
