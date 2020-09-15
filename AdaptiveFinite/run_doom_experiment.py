@@ -6,13 +6,11 @@ from argparse import ArgumentParser
 import matplotlib.pyplot as plt
 import datetime
 import seaborn as sns
-import copy
 
 DEFAULT_CONFIG = "../scenarios/my_way_home_allpoints.cfg"
 PLOT = True
 LOAD = False
 SAVE = False
-TARGET_STATE = tuple([1040.0, -352.0, 0.0])  # TODO: try to get this auto
 TARGET_REWARD = 0.0
 
 
@@ -66,9 +64,9 @@ def find_maze_borders(state):
 
 
 if __name__ == "__main__":
-    change_tree = 1  # TODO: 420%change_tree should be 0
+    change_tree = 20  # TODO: 420%change_tree should be 0
     epLen = int(420/change_tree)
-    nEps = 20000
+    nEps = 3000
     numIters = 25
     scaling = 0
     alpha = 0
@@ -107,6 +105,9 @@ if __name__ == "__main__":
     # Find borders to normalize state space to [0,1]x[0,1]
     dummy_state = game.get_state()
     max_x, min_x, max_y, min_y = find_maze_borders(dummy_state)
+    target_object = [o for o in dummy_state.objects if o.name == 'GreenArmor'][0]
+    dummy_state.game_variables[0] = target_object.position_x
+    dummy_state.game_variables[1] = target_object.position_y
 
     # For Heat Map
     disc_diff = 20.0
@@ -140,9 +141,6 @@ if __name__ == "__main__":
             total_reward += reward
             add_obs_to_heat_map(state, action)
             if game.is_episode_finished() and reward > TARGET_REWARD:
-                dummy_state.game_variables[0] = TARGET_STATE[0]
-                dummy_state.game_variables[1] = TARGET_STATE[1]
-                dummy_state.game_variables[2] = TARGET_STATE[2]
                 new_bucket = state_to_bucket(dummy_state)
                 agent.update_obs(bucket, action, reward, new_bucket, h)
             elif not game.is_episode_finished():
@@ -199,25 +197,10 @@ if __name__ == "__main__":
                 fig.savefig('AdaptiveDiscretization_Episode#'+str(i)+'_Tree#'+str(h))
                 plt.close()
 
-        # TODO: plot a continuous graph of balls' n_visits
         if PLOT and i % plot_every == 0:
             sns.set()
             ax = sns.heatmap(np.transpose(np.sum(n_visits, axis=(2, 3))))
             fig = ax.get_figure()
             fig.savefig("Episode#"+str(i)+"_HeatMap")
             plt.close()
-        # TODO: plot a graph of the space's division to balls
-        # if i == 0:
-        #     plt.show()
-        #     for s in state.sectors:
-        #         for l in s.lines:
-        #             if l.is_blocking:
-        #                 plt.plot([l.x1, l.x2], [l.y1, l.y2], color='black', linewidth=2)
-        #     plt.xticks([min_x+disc_diff*x for x in range(NUM_BUCKETS[0])], "")
-        #     plt.yticks([min_y+disc_diff*y for y in range(NUM_BUCKETS[1])], "")
-        #     # plt.axes.xaxis.set_ticklabels([])
-        #     # plt.axes.yaxis.set_ticklabels([])
-        #     plt.grid(True)
-        #     plt.savefig("Disc_Map")
-        #     plt.close()
     game.close()
