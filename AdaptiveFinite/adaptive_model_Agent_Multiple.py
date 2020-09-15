@@ -107,7 +107,7 @@ class AdaptiveModelBasedDiscretization(agent.FiniteHorizonAgent):
             for node in tree.tree_leaves:
                 # If the node has not been visited before - set its Q Value
                 # to be optimistic
-                if node.num_unique_visits == 0:
+                if node.num_unique_visits == 0:  # TODO: if we want rmax we need each ball to start with unique 0
                     # node.qVal = self.epLen
                     node.qVal = self.rmax  # TODO: change to RMAX probably
                 else:
@@ -124,8 +124,8 @@ class AdaptiveModelBasedDiscretization(agent.FiniteHorizonAgent):
                     else:  # Gets the next tree to estimate the transition kernel
                         next_tree = self.tree_list[h+1]
                         vEst = np.dot((np.asarray(node.pEst)+self.alpha) / (np.sum(np.array(node.pEst))+len(next_tree.state_leaves)*self.alpha), next_tree.vEst)
-                        node.qVal = min(node.qVal, self.epLen, node.rEst + vEst + self.scaling / np.sqrt(node.num_unique_visits))
-                        node.qVal = node.rEst + vEst
+                        # node.qVal = min(node.qVal, self.epLen, node.rEst + vEst + self.scaling / np.sqrt(node.num_unique_visits))
+                        node.qVal = node.rEst + vEst  # TODO: changed to classic equation
                 # print(node.state_val, node.action_val, node.qVal)
             # After updating the Q Value for each node - computes the estimate of the value function
             index = 0

@@ -167,7 +167,7 @@ if __name__ == "__main__":
 
                 # print("=====================")
                 # print("Sectors:")
-                if h == 1:
+                if t == 1:
                     for s in state.sectors:
                         # Plot sector on map
                         for l in s.lines:

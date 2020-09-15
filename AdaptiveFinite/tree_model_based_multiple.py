@@ -34,7 +34,8 @@ class Node():
             a = self.qVal
             b = self.rEst
             c = self.pEst
-            e = self.num_visits
+            # e = self.num_visits  # TODO: decide
+            e = 0
         else:
             a = epLen  # TODO: change to rmax (need to pass rmax value: agent->tree->node
             b = 0
