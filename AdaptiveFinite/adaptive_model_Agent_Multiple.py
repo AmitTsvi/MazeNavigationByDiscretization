@@ -26,7 +26,7 @@ class AdaptiveModelBasedDiscretization(agent.FiniteHorizonAgent):
         # Makes a new partition for each step and adds it to the list of trees
         for h in range(epLen):
             # print(h)
-            tree = Tree(epLen, self.flag)
+            tree = Tree(epLen, self.flag, rmax)
             self.tree_list.append(tree)
 
         self.rmax = rmax
@@ -38,7 +38,7 @@ class AdaptiveModelBasedDiscretization(agent.FiniteHorizonAgent):
 
         # Makes a new partition for each step and adds it to the list of trees
         for h in range(self.epLen):
-            tree = Tree(self.epLen, self.flag)
+            tree = Tree(self.epLen, self.flag, self.rmax)
             self.tree_list.append(tree)
 
         # Gets the number of arms for each tree and adds them together
@@ -109,7 +109,7 @@ class AdaptiveModelBasedDiscretization(agent.FiniteHorizonAgent):
                 # to be optimistic
                 if node.num_unique_visits == 0:  # TODO: if we want rmax we need each ball to start with unique 0
                     # node.qVal = self.epLen
-                    node.qVal = self.rmax  # TODO: change to RMAX probably
+                    node.qVal = 2*self.rmax  # TODO: change to RMAX probably
                 else:
                     # Otherwise solve for the Q Values with the bonus term
 

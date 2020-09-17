@@ -6,8 +6,9 @@ from argparse import ArgumentParser
 import matplotlib.pyplot as plt
 import datetime
 import seaborn as sns
+import pickle
 
-DEFAULT_CONFIG = "../scenarios/my_way_home_allpoints.cfg"
+DEFAULT_CONFIG = "../scenarios/my_way_home_onespawn.cfg"
 PLOT = True
 LOAD = False
 SAVE = False
@@ -67,12 +68,10 @@ if __name__ == "__main__":
     change_tree = 20  # TODO: 420%change_tree should be 0
     epLen = int(420/change_tree)
     nEps = 3000
-    numIters = 25
     scaling = 0
     alpha = 0
-    plot_every = 25
+    plot_every = 100
     R_MAX = 1.0
-    M_VISITS_TO_KNOWN = 1
     VALUE_ITERATIONS = 1
 
 
@@ -119,7 +118,7 @@ if __name__ == "__main__":
     int((max_x - min_x) / disc_diff), int((max_y - min_y) / disc_diff), int((max_angle - min_angle) / disc_angle))
     n_visits = np.zeros(NUM_BUCKETS + (NUM_ACTIONS,), dtype=float)
 
-    agent = AdaptiveModelBasedDiscretization(epLen, nEps, scaling, alpha, False, 2*R_MAX)  # TODO: RMAX or 2*RMAX
+    agent = AdaptiveModelBasedDiscretization(epLen, nEps, scaling, alpha, True, R_MAX)  # TODO: RMAX or 2*RMAX
 
     for i in range(nEps):
         print("Episode #" + str(i + 1))
@@ -203,4 +202,7 @@ if __name__ == "__main__":
             fig = ax.get_figure()
             fig.savefig("Episode#"+str(i)+"_HeatMap")
             plt.close()
+    outfile = open("PickledAgent", 'wb')
+    pickle.dump(agent, outfile)
+    outfile.close()
     game.close()

@@ -7,7 +7,7 @@ import matplotlib.patches as patches
 
 ''' First defines the node class by storing all relevant information'''
 class Node():
-    def __init__(self, qVal, rEst, pEst, num_visits, num_unique_visits, num_splits, state_val, action_val, radius):
+    def __init__(self, qVal, rEst, pEst, num_visits, num_unique_visits, num_splits, state_val, action_val, radius, rmax):
         '''args:
         qVal - estimate of the q value
         num_visits - number of visits to the node or its ancestors
@@ -25,6 +25,7 @@ class Node():
         self.action_val = action_val
         self.radius = radius
         self.children = None
+        self.rmax = rmax
 
         # Splits a node by covering it with four children, as here S times A is [0,1]^2
         # each with half the radius
@@ -37,9 +38,10 @@ class Node():
             # e = self.num_visits  # TODO: decide
             e = 0
         else:
-            a = epLen  # TODO: change to rmax (need to pass rmax value: agent->tree->node
-            b = 0
-            c = np.zeros(len(self.pEst)).tolist()
+            a = 2*self.rmax
+            b = self.rmax
+            # c = np.zeros(len(self.pEst)).tolist()
+            c = self.pEst
             e = 0
         # TODO: ORG start to replace
         # child_1 = Node(a,b,list.copy(c), self.num_visits, self.num_visits,
@@ -82,19 +84,19 @@ class Node():
         rh = self.radius/2  # TODO: check why num_unique_visits isn't 0
         self.children = [Node(a,b,list.copy(c), self.num_visits, e, self.num_splits+1,
                               (self.state_val[0]+k0*rh, self.state_val[1]+k1*rh, self.state_val[2]+k2*rh),
-                              (self.action_val[0]+k3*rh,), rh) for k0 in [-1,1] for k1 in [-1,1] for k2 in [-1,1] for k3 in [-1, 1]]
+                              (self.action_val[0]+k3*rh,), rh, self.rmax) for k0 in [-1,1] for k1 in [-1,1] for k2 in [-1,1] for k3 in [-1, 1]]
         return self.children
 
 
 '''The tree class consists of a hierarchy of nodes'''
 class Tree():
     # Defines a tree by the number of steps for the initialization
-    def __init__(self, epLen, flag):
+    def __init__(self, epLen, flag, rmax):
         # TODO: ORG start to replace
         # self.head = Node(epLen, 0,[0],0,0, 0, (0.5, 0.5), (0.5, 0.5), 0.5)
         # TODO: ORG end to replace
         # Amit: should be replaced with: (for our 3d state space and 1d action space)
-        self.head = Node(epLen, 0, [0], 0, 0, 0, (0.5, 0.5, 0.5), (0.5,), 0.5)
+        self.head = Node(epLen, 0, [0], 0, 0, 0, (0.5, 0.5, 0.5), (0.5,), 0.5, rmax)
         self.epLen = epLen
         self.flag = flag
         # TODO: ORG start to replace
@@ -104,6 +106,7 @@ class Tree():
         self.state_leaves = [(0.5, 0.5, 0.5)]
         self.vEst = [self.epLen]
         self.tree_leaves = [self.head]
+        self.rmax = rmax
 
     # Returns the head of the tree
     def get_head(self):
