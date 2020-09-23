@@ -67,8 +67,11 @@ class AdaptiveModelBasedDiscretization(agent.FiniteHorizonAgent):
         t = active_node.num_unique_visits
         # print('Num visits: ' + str(t))
 
+        active_node.samples.append(obs+(reward,))
+
         # Update empirical estimate of average reward for that node
-        active_node.rEst = ((t-1)*active_node.rEst + reward) / t
+        if active_node.num_unique_visits > 64:  # TODO: pass as argument
+            active_node.rEst = ((t-1)*active_node.rEst + reward) / t
         # print('Mean reward: ' + str(active_node.rEst))
 
         # If it is not the last timestep - updates the empirical estimate
@@ -104,7 +107,7 @@ class AdaptiveModelBasedDiscretization(agent.FiniteHorizonAgent):
             for node in tree.tree_leaves:
                 # If the node has not been visited before - set its Q Value
                 # to be optimistic
-                if node.num_unique_visits == 0:  # TODO: if we want rmax we need each ball to start with unique 0
+                if node.num_unique_visits < 64:  # TODO: if we want rmax we need each ball to start with unique 0
                     # node.qVal = self.epLen
                     node.qVal = 2*self.rmax  # TODO: change to RMAX probably
                 else:

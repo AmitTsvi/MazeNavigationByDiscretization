@@ -27,6 +27,7 @@ class Node():
         self.radius = radius
         self.children = None
         self.rmax = rmax
+        self.samples = []
 
         # Splits a node by covering it with four children, as here S times A is [0,1]^2
         # each with half the radius
@@ -86,6 +87,16 @@ class Node():
         self.children = [Node(a,b,list.copy(c), self.num_visits, e, self.num_splits+1,
                               (self.state_val[0]+k0*rh, self.state_val[1]+k1*rh, self.state_val[2]+k2*rh),
                               (self.action_val[0]+k3*rh,), rh, self.rmax) for k0 in [-1,1] for k1 in [-1,1] for k2 in [-1,1] for k3 in [-1, 1]]
+        for child in self.children:
+            child.samples = [s for s in self.samples if np.max(np.abs(np.asarray(s[0:3]) - np.asarray(child.state_val))) <= child.radius]
+            child.num_unique_visits = len(child.samples)
+            if len(child.samples) > 64:  # TODO: pass as argument
+                child.qVal = self.qVal*(len(child.samples)/len(self.samples))*len(self.children)
+                child.rEst = np.average([s[3] for s in child.samples])
+            else:
+                child.qVal = 2*self.rmax
+                child.rEst = self.rmax
+        self.samples.clear()
         return self.children
 
 
@@ -156,9 +167,10 @@ class Tree():
             # TODO: ORG end to replace
             # Amit: should be replaced with: (for our 3d state space and 1d action space)
             unique_state_values = list(set([child.state_val for child in children]))
-            for state_val in unique_state_values:
-                self.state_leaves.append(state_val)
-            self.vEst += [parent_vEst]*8
+            for unique_state_val in unique_state_values:
+                self.state_leaves.append(unique_state_val)
+                childvEst = np.max([child.qVal for child in children if child.state_val == unique_state_val])
+                self.vEst.append(childvEst)
             # print('Checking lengths: ')
             # print(len(self.state_leaves))
             # print(len(self.vEst))
