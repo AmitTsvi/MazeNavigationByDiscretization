@@ -74,7 +74,7 @@ class AdaptiveModelBasedDiscretization(agent.FiniteHorizonAgent):
         # If it is not the last timestep - updates the empirical estimate
         # of the transition kernel based on the induced state partition at the next step
         if timestep != self.epLen - 1:
-            next_tree = self.tree_list[timestep+1]
+            next_tree = tree
             # update transition kernel based off of new transition
             #print(active_node.pEst)
             #print('timestep' + str(timestep))
@@ -87,10 +87,7 @@ class AdaptiveModelBasedDiscretization(agent.FiniteHorizonAgent):
         '''determines if it is time to split the current ball'''
         if t >= 4**active_node.num_splits:  # TODO: a wrong threshold, opened issue on git to clarify
             # print('Splitting a ball!!!!')
-            if timestep >= 1:
-                children = tree.split_node(active_node, timestep, self.tree_list[timestep-1])
-            else:
-                children = tree.split_node(active_node, timestep, None)
+            children = tree.split_node(active_node, 10, tree)
 
     def update_policy(self, k):
         '''Update internal policy based upon records'''
@@ -122,7 +119,7 @@ class AdaptiveModelBasedDiscretization(agent.FiniteHorizonAgent):
                         node.qVal = node.rEst  # TODO: changed to classic equation
 
                     else:  # Gets the next tree to estimate the transition kernel
-                        next_tree = self.tree_list[h+1]
+                        next_tree = tree
                         vEst = np.dot((np.asarray(node.pEst)+self.alpha) / (np.sum(np.array(node.pEst))+len(next_tree.state_leaves)*self.alpha), next_tree.vEst)
                         # node.qVal = min(node.qVal, self.epLen, node.rEst + vEst + self.scaling / np.sqrt(node.num_unique_visits))
                         node.qVal = node.rEst + vEst  # TODO: changed to classic equation

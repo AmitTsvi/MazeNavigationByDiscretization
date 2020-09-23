@@ -7,11 +7,13 @@ import matplotlib.pyplot as plt
 import datetime
 import seaborn as sns
 import pickle
+import sys, select
+
 
 DEFAULT_CONFIG = "../scenarios/my_way_home_onespawn.cfg"
 PLOT = True
 LOAD = False
-SAVE = False
+SAVE = True
 TARGET_REWARD = 0.0
 
 
@@ -66,7 +68,7 @@ def find_maze_borders(state):
 
 if __name__ == "__main__":
     change_tree = 20  # TODO: 420%change_tree should be 0
-    epLen = int(420/change_tree)
+    epLen = int(840/change_tree)
     nEps = 3000
     scaling = 0
     alpha = 0
@@ -118,10 +120,22 @@ if __name__ == "__main__":
     int((max_x - min_x) / disc_diff), int((max_y - min_y) / disc_diff), int((max_angle - min_angle) / disc_angle))
     n_visits = np.zeros(NUM_BUCKETS + (NUM_ACTIONS,), dtype=float)
 
-    agent = AdaptiveModelBasedDiscretization(epLen, nEps, scaling, alpha, True, R_MAX)  # TODO: RMAX or 2*RMAX
+    if LOAD is True:
+        infile = open('PickledAgent', 'rb')
+        agent = pickle.load(infile)
+        infile.close()
+    else:
+        agent = AdaptiveModelBasedDiscretization(1, nEps, scaling, alpha, True, R_MAX)  # TODO: RMAX or 2*RMAX
 
     for i in range(nEps):
-        print("Episode #" + str(i + 1))
+        print("Episode #" + str(i + 1)+". 2 seconds to end run")
+        q, o, e = select.select([sys.stdin], [], [], 2)
+        if (q):
+            outfile = open("PickledAgent", 'wb')
+            pickle.dump(agent, outfile)
+            outfile.close()
+            game.close()
+            exit()
         f = open(str(datetime.datetime.now()).split()[0]+'.log', 'a')
         if PLOT and i % plot_every == 0:
             plt.show()
@@ -130,25 +144,24 @@ if __name__ == "__main__":
         final_state = 0
         total_reward = 0
         t = 0
-        h = 0
         while not game.is_episode_finished():
             # Gets the state
             state = game.get_state()
             bucket = state_to_bucket(state)
-            action = select_action(bucket, h)
+            action = select_action(bucket, 0)
             reward = game.make_action(actions[action], ticks)
             total_reward += reward
             add_obs_to_heat_map(state, action)
             if game.is_episode_finished() and reward > TARGET_REWARD:
                 new_bucket = state_to_bucket(dummy_state)
-                agent.update_obs(bucket, action, reward, new_bucket, h)
+                agent.update_obs(bucket, action, reward, new_bucket, 0)
             elif not game.is_episode_finished():
                 new_state = game.get_state()
                 new_bucket = state_to_bucket(new_state)
-                agent.update_obs(bucket, action, reward, new_bucket, h)
+                agent.update_obs(bucket, action, reward, new_bucket, 0)
+            if t % 30 == 0:
+                agent.update_policy(i)
             t = t + 1
-            if t % change_tree == 0:
-                h = h + 1
 
             print("State #" + str(state.number))
             final_state = state.number
@@ -184,17 +197,16 @@ if __name__ == "__main__":
             plt.close()
 
         if PLOT and i % plot_every == 0:
-            for h in [0, 10, 20]:
-                fig = plt.figure()
-                tree = agent.tree_list[h]
-                tree.plot(fig)
-                ax = plt.gca()
-                for s in dummy_state.sectors:
-                    for l in s.lines:
-                        if l.is_blocking:
-                            ax.plot([norm_x(l.x1), norm_x(l.x2)], [norm_y(l.y1), norm_y(l.y2)], color='black', linewidth=2)
-                fig.savefig('AdaptiveDiscretization_Episode#'+str(i)+'_Tree#'+str(h))
-                plt.close()
+            fig = plt.figure()
+            tree = agent.tree_list[0]
+            tree.plot(fig)
+            ax = plt.gca()
+            for s in dummy_state.sectors:
+                for l in s.lines:
+                    if l.is_blocking:
+                        ax.plot([norm_x(l.x1), norm_x(l.x2)], [norm_y(l.y1), norm_y(l.y2)], color='black', linewidth=2)
+            fig.savefig('AdaptiveDiscretization_Episode#'+str(i)+'_Tree#'+str(0))
+            plt.close()
 
         if PLOT and i % plot_every == 0:
             sns.set()
@@ -202,7 +214,8 @@ if __name__ == "__main__":
             fig = ax.get_figure()
             fig.savefig("Episode#"+str(i)+"_HeatMap")
             plt.close()
-    outfile = open("PickledAgent", 'wb')
-    pickle.dump(agent, outfile)
-    outfile.close()
+    if SAVE is True:
+        outfile = open("PickledAgent", 'wb')
+        pickle.dump(agent, outfile)
+        outfile.close()
     game.close()

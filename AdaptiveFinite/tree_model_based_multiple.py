@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+import random as rnd
 
 ''' Implementation of a tree structured used in the Adaptive Discretization Algorithm'''
 
@@ -215,6 +216,15 @@ class Tree():
             rect = patches.Rectangle((node.state_val[0] - node.radius,node.state_val[1]-node.radius),node.radius*2,node.radius*2,linewidth=1,edgecolor='r',facecolor='none')
             ax.add_patch(rect)
             # plt.text(node.state_val, node.action_val, np.around(node.qVal, 3))
+            rx, ry = rect.get_xy()
+            cx = rx + rect.get_width() / 2.0
+            cy = ry + rect.get_height() / 2.0
+            _, qVal = self.get_active_ball(node.state_val)
+            if qVal >= 0:
+                text = '+'
+            else:
+                text = '-'
+            ax.annotate(text, (cx, cy), color='b', weight='light', fontsize=5, ha='center', va='center')
         else:
             for child in node.children:
                 self.plot_node(child, ax)
@@ -250,8 +260,12 @@ class Tree():
                 if self.state_within_node(state, child):
                     # recursively check that node for the max one, and compare against all of them
                     new_node, new_qVal = self.get_active_ball_recursion(state, child)
-                    if new_qVal >= qVal:
+                    if new_qVal > qVal:
                         active_node, qVal = new_node, new_qVal
+                    elif new_qVal == qVal:
+                        r = rnd.randrange(2)
+                        if r == 0:
+                            active_node, qVal = new_node, new_qVal
                 else:
                     pass
         return active_node, qVal
