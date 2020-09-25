@@ -70,22 +70,23 @@ class AdaptiveModelBasedDiscretization(agent.FiniteHorizonAgent):
         active_node.samples.append(obs+(reward,))
 
         # Update empirical estimate of average reward for that node
-        if active_node.num_unique_visits > 64:  # TODO: pass as argument
+        if active_node.num_unique_visits == 64:
+            active_node.rEst = np.average([s[3] for s in active_node.samples])
+        if active_node.num_unique_visits >= 64:  # TODO: pass as argument
             active_node.rEst = ((t-1)*active_node.rEst + reward) / t
         # print('Mean reward: ' + str(active_node.rEst))
 
         # If it is not the last timestep - updates the empirical estimate
         # of the transition kernel based on the induced state partition at the next step
-        if timestep != self.epLen - 1:
-            next_tree = tree
-            # update transition kernel based off of new transition
-            #print(active_node.pEst)
-            #print('timestep' + str(timestep))
-            new_obs_loc = np.argmin(np.max(np.abs(np.asarray(next_tree.state_leaves) - np.array(newObs)),axis=1))
-            active_node.pEst[new_obs_loc] += 1
-            # print('Updating transition estimates!')
-            # print(active_node.pEst)
-            # print(next_tree.state_leaves)
+        next_tree = tree
+        # update transition kernel based off of new transition
+        #print(active_node.pEst)
+        #print('timestep' + str(timestep))
+        new_obs_loc = np.argmin(np.max(np.abs(np.asarray(next_tree.state_leaves) - np.array(newObs)),axis=1))
+        active_node.pEst[new_obs_loc] += 1
+        # print('Updating transition estimates!')
+        # print(active_node.pEst)
+        # print(next_tree.state_leaves)
 
         '''determines if it is time to split the current ball'''
         if t >= 4**active_node.num_splits:  # TODO: a wrong threshold, opened issue on git to clarify
@@ -94,10 +95,6 @@ class AdaptiveModelBasedDiscretization(agent.FiniteHorizonAgent):
 
     def update_policy(self, k):
         '''Update internal policy based upon records'''
-        # print('#######################')
-        # print('Recomputing estimates at the end of an episode')
-        # print('#######################')
-
         # Solves the empirical Bellman equations
         for h in np.arange(self.epLen-1,-1,-1):
             # print('Estimates for step: ' + str(h))
@@ -112,20 +109,10 @@ class AdaptiveModelBasedDiscretization(agent.FiniteHorizonAgent):
                     node.qVal = 2*self.rmax  # TODO: change to RMAX probably
                 else:
                     # Otherwise solve for the Q Values with the bonus term
-
-                    # If h == H then the value function for the next step is zero
-                    if h == self.epLen - 1:
-                        # print(node.qVal)
-                        # print(self.epLen)
-                        # print(node.rEst)
-                        # node.qVal = min(node.qVal, self.epLen, node.rEst + self.scaling / np.sqrt(node.num_unique_visits))
-                        node.qVal = node.rEst  # TODO: changed to classic equation
-
-                    else:  # Gets the next tree to estimate the transition kernel
-                        next_tree = tree
-                        vEst = np.dot((np.asarray(node.pEst)+self.alpha) / (np.sum(np.array(node.pEst))+len(next_tree.state_leaves)*self.alpha), next_tree.vEst)
-                        # node.qVal = min(node.qVal, self.epLen, node.rEst + vEst + self.scaling / np.sqrt(node.num_unique_visits))
-                        node.qVal = node.rEst + vEst  # TODO: changed to classic equation
+                    next_tree = tree
+                    vEst = np.dot((np.asarray(node.pEst)+self.alpha) / (np.sum(np.array(node.pEst))+len(next_tree.state_leaves)*self.alpha), next_tree.vEst)
+                    # node.qVal = min(node.qVal, self.epLen, node.rEst + vEst + self.scaling / np.sqrt(node.num_unique_visits))
+                    node.qVal = node.rEst + vEst  # TODO: changed to classic equation
                 # print(node.state_val, node.action_val, node.qVal)
             # After updating the Q Value for each node - computes the estimate of the value function
             index = 0
