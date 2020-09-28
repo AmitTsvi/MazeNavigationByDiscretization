@@ -136,7 +136,7 @@ if __name__ == "__main__":
 
     learning_rate = get_learning_rate(0)
     explore_rate = get_explore_rate(0)
-    discount_factor = 0.99
+    discount_factor = 1
 
     for i in range(episodes):
         print("Episode #" + str(i + 1))
@@ -162,11 +162,14 @@ if __name__ == "__main__":
             if not game.is_episode_finished():
                 new_state = game.get_state()
                 new_bucket = state_to_bucket(new_state)
-            else:
+                best_q = np.amax(q_table[new_bucket])
+                q_table[bucket + (action,)] += learning_rate * (
+                            reward + discount_factor * (best_q) - q_table[bucket + (action,)])
+            elif reward > 0:
                 new_bucket = state_to_bucket(dummy_state)
-
-            best_q = np.amax(q_table[new_bucket])
-            q_table[bucket + (action,)] += learning_rate * (reward + discount_factor * (best_q) - q_table[bucket + (action,)])
+                best_q = np.amax(q_table[new_bucket])
+                q_table[bucket + (action,)] += learning_rate * (
+                            reward + discount_factor * (best_q) - q_table[bucket + (action,)])
 
             explore_rate = get_explore_rate(i)
             learning_rate = get_learning_rate(i)

@@ -35,12 +35,12 @@ def norm_y(y):
 
 
 def select_action(state, h):
-    raw_action = agent.pick_action(state, h)
+    raw_action, active_node = agent.pick_action(state, h)
     num_actions = len(actions)
     action = int(num_actions*raw_action)
     if action == 3:  # in case the raw action is 1.0
         action = 2
-    return action
+    return action, active_node, raw_action
 
 
 def state_to_bucket(state):
@@ -67,15 +67,12 @@ def find_maze_borders(state):
 
 
 if __name__ == "__main__":
-    change_tree = 20  # TODO: 420%change_tree should be 0
-    epLen = int(840/change_tree)
     nEps = 3000
     scaling = 0
     alpha = 0
     plot_every = 100
     R_MAX = 1.0
     VALUE_ITERATIONS = 1
-
 
     # Init env
     parser = ArgumentParser("ViZDoom example showing how to use information about objects and map.")
@@ -106,6 +103,8 @@ if __name__ == "__main__":
     # Find borders to normalize state space to [0,1]x[0,1]
     dummy_state = game.get_state()
     max_x, min_x, max_y, min_y = find_maze_borders(dummy_state)
+
+    # Find coordinates of target to create the terminal state
     target_object = [o for o in dummy_state.objects if o.name == 'GreenArmor'][0]
     dummy_state.game_variables[0] = target_object.position_x
     dummy_state.game_variables[1] = target_object.position_y
@@ -116,8 +115,7 @@ if __name__ == "__main__":
     max_angle = 360
     disc_angle = 90
     NUM_ACTIONS = len(actions)
-    NUM_BUCKETS = (
-    int((max_x - min_x) / disc_diff), int((max_y - min_y) / disc_diff), int((max_angle - min_angle) / disc_angle))
+    NUM_BUCKETS = (int((max_x-min_x)/disc_diff), int((max_y-min_y)/disc_diff), int((max_angle-min_angle)/disc_angle))
     n_visits = np.zeros(NUM_BUCKETS + (NUM_ACTIONS,), dtype=float)
 
     if LOAD is True:
@@ -125,7 +123,7 @@ if __name__ == "__main__":
         agent = pickle.load(infile)
         infile.close()
     else:
-        agent = AdaptiveModelBasedDiscretization(1, nEps, scaling, alpha, True, R_MAX)  # TODO: RMAX or 2*RMAX
+        agent = AdaptiveModelBasedDiscretization(1, True, R_MAX)
 
     for i in range(nEps):
         print("Episode #" + str(i + 1)+". 2 seconds to end run")
@@ -140,34 +138,29 @@ if __name__ == "__main__":
         if PLOT and i % plot_every == 0:
             plt.show()
         game.new_episode()
-        state = game.get_state()
         final_state = 0
         total_reward = 0
         t = 0
         while not game.is_episode_finished():
-            # Gets the state
             state = game.get_state()
             bucket = state_to_bucket(state)
-            action = select_action(bucket, 0)
+            action, active_node, raw_action = select_action(bucket, 0)
             reward = game.make_action(actions[action], ticks)
             total_reward += reward
             add_obs_to_heat_map(state, action)
             if game.is_episode_finished() and reward > TARGET_REWARD:
                 new_bucket = state_to_bucket(dummy_state)
-                agent.update_obs(bucket, action, reward, new_bucket, 0)
+                agent.update_obs(bucket, raw_action, reward, new_bucket, 0, active_node)
             elif not game.is_episode_finished():
                 new_state = game.get_state()
                 new_bucket = state_to_bucket(new_state)
-                agent.update_obs(bucket, action, reward, new_bucket, 0)
+                agent.update_obs(bucket, raw_action, reward, new_bucket, 0, active_node)
             if t % 30 == 0:
                 agent.update_policy(i)
             t = t + 1
 
             print("State #" + str(state.number))
             final_state = state.number
-            # print("Player position: x:", state.game_variables[0], ", y:", state.game_variables[1], ", angle:",
-            #       state.game_variables[2])
-            # print("Objects:")
 
             if PLOT and i % plot_every == 0:
                 # Print information about objects present in the episode.
@@ -177,8 +170,6 @@ if __name__ == "__main__":
                     else:
                         plt.plot(o.position_x, o.position_y, color='red', marker='o')
 
-                # print("=====================")
-                # print("Sectors:")
                 if t == 1:
                     for s in state.sectors:
                         # Plot sector on map
@@ -214,6 +205,7 @@ if __name__ == "__main__":
             fig = ax.get_figure()
             fig.savefig("Episode#"+str(i)+"_HeatMap")
             plt.close()
+
     if SAVE is True:
         outfile = open("PickledAgent", 'wb')
         pickle.dump(agent, outfile)

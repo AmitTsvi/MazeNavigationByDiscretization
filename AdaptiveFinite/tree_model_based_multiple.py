@@ -6,7 +6,6 @@ import random as rnd
 ''' Implementation of a tree structured used in the Adaptive Discretization Algorithm'''
 
 
-''' First defines the node class by storing all relevant information'''
 class Node():
     def __init__(self, qVal, rEst, pEst, num_visits, num_unique_visits, num_splits, state_val, action_val, radius, rmax):
         '''args:
@@ -28,95 +27,54 @@ class Node():
         self.children = None
         self.rmax = rmax
         self.samples = []
+        self.qEst = 0
 
-        # Splits a node by covering it with four children, as here S times A is [0,1]^2
+    def is_sample_in_child(self, s):
+        if np.max(np.abs(np.asarray(s[0:3]) - np.asarray(self.state_val))) <= self.radius:
+            if np.max(np.abs(np.asarray(s[3]) - np.asarray(self.action_val))) <= self.radius:
+                return True
+        return False
+
+        # Splits a node by covering it with 16 children, as here S times A is [0,1]^4
         # each with half the radius
-    def split_node(self, flag, epLen):
-        #second numvisits 0 if flag false
-        if flag == False:  # TODO: which flag value do we need?
+    def split_node(self, flag):
+        if flag is False:  # TODO: which flag value do we need?
             a = self.qVal
             b = self.rEst
-            c = self.pEst
-            # e = self.num_visits  # TODO: decide
-            e = 0
+            e = self.num_visits
         else:
             a = 2*self.rmax
             b = self.rmax
-            # c = np.zeros(len(self.pEst)).tolist()
-            c = self.pEst
             e = 0
-        # TODO: ORG start to replace
-        # child_1 = Node(a,b,list.copy(c), self.num_visits, self.num_visits,
-        #                self.num_splits+1, (self.state_val[0]-self.radius/2, self.state_val[1] - self.radius/2), (self.action_val[0]-self.radius/2, self.action_val[1] - self.radius/2), self.radius*(1/2))
-        # child_2 = Node(a,b,list.copy(c), self.num_visits, self.num_visits,
-        #                self.num_splits+1, (self.state_val[0]-self.radius/2, self.state_val[1] - self.radius/2), (self.action_val[0]-self.radius/2, self.action_val[1] + self.radius/2), self.radius*(1/2))
-        # child_3 = Node(a,b,list.copy(c), self.num_visits, self.num_visits,
-        #                self.num_splits+1, (self.state_val[0]-self.radius/2, self.state_val[1] - self.radius/2), (self.action_val[0]+self.radius/2, self.action_val[1] - self.radius/2), self.radius*(1/2))
-        # child_4 = Node(a,b,list.copy(c), self.num_visits, self.num_visits,
-        #                self.num_splits+1, (self.state_val[0]-self.radius/2, self.state_val[1] - self.radius/2), (self.action_val[0]+self.radius/2, self.action_val[1] + self.radius/2), self.radius*(1/2))
-        # child_5 = Node(a,b,list.copy(c), self.num_visits, self.num_visits,
-        #                self.num_splits+1, (self.state_val[0]-self.radius/2, self.state_val[1] + self.radius/2), (self.action_val[0]-self.radius/2, self.action_val[1] - self.radius/2), self.radius*(1/2))
-        # child_6 = Node(a,b,list.copy(c), self.num_visits, self.num_visits,
-        #                self.num_splits+1, (self.state_val[0]-self.radius/2, self.state_val[1] + self.radius/2), (self.action_val[0]-self.radius/2, self.action_val[1] + self.radius/2), self.radius*(1/2))
-        # child_7 = Node(a,b,list.copy(c), self.num_visits, self.num_visits,
-        #                self.num_splits+1, (self.state_val[0]-self.radius/2, self.state_val[1] + self.radius/2), (self.action_val[0]+self.radius/2, self.action_val[1] - self.radius/2), self.radius*(1/2))
-        # child_8 = Node(a,b,list.copy(c), self.num_visits, self.num_visits,
-        #                self.num_splits+1, (self.state_val[0]-self.radius/2, self.state_val[1] + self.radius/2), (self.action_val[0]+self.radius/2, self.action_val[1] + self.radius/2), self.radius*(1/2))
-        # child_9 = Node(a,b,list.copy(c), self.num_visits, self.num_visits,
-        #                self.num_splits+1, (self.state_val[0]+self.radius/2, self.state_val[1] - self.radius/2), (self.action_val[0]-self.radius/2, self.action_val[1] - self.radius/2), self.radius*(1/2))
-        # child_10 = Node(a,b,list.copy(c), self.num_visits, self.num_visits,
-        #                self.num_splits+1, (self.state_val[0]+self.radius/2, self.state_val[1] - self.radius/2), (self.action_val[0]-self.radius/2, self.action_val[1] + self.radius/2), self.radius*(1/2))
-        # child_11 = Node(a,b,list.copy(c), self.num_visits, self.num_visits,
-        #                self.num_splits+1, (self.state_val[0]+self.radius/2, self.state_val[1] - self.radius/2), (self.action_val[0]+self.radius/2, self.action_val[1] - self.radius/2), self.radius*(1/2))
-        # child_12 = Node(a,b,list.copy(c), self.num_visits, self.num_visits,
-        #                self.num_splits+1, (self.state_val[0]+self.radius/2, self.state_val[1] - self.radius/2), (self.action_val[0]+self.radius/2, self.action_val[1] + self.radius/2), self.radius*(1/2))
-        # child_13 = Node(a,b,list.copy(c), self.num_visits, self.num_visits,
-        #                self.num_splits+1, (self.state_val[0]+self.radius/2, self.state_val[1] + self.radius/2), (self.action_val[0]-self.radius/2, self.action_val[1] - self.radius/2), self.radius*(1/2))
-        # child_14 = Node(a,b,list.copy(c), self.num_visits, self.num_visits,
-        #                self.num_splits+1, (self.state_val[0]+self.radius/2, self.state_val[1] + self.radius/2), (self.action_val[0]-self.radius/2, self.action_val[1] + self.radius/2), self.radius*(1/2))
-        # child_15 = Node(a,b,list.copy(c), self.num_visits, self.num_visits,
-        #                self.num_splits+1, (self.state_val[0]+self.radius/2, self.state_val[1] + self.radius/2), (self.action_val[0]+self.radius/2, self.action_val[1] - self.radius/2), self.radius*(1/2))
-        # child_16 = Node(a,b,list.copy(c), self.num_visits, self.num_visits,
-        #                self.num_splits+1, (self.state_val[0]+self.radius/2, self.state_val[1] + self.radius/2), (self.action_val[0]+self.radius/2, self.action_val[1] + self.radius/2), self.radius*(1/2))
-        #
-        # self.children = [child_1, child_2, child_3, child_4, child_5, child_6, child_7, child_8, child_9, child_10,
-        #                  child_11, child_12, child_13, child_14, child_15, child_16]
-        # TODO: ORG end to replace
-        # Amit: should be replaced with: (for our 3d state space and 1d action space)
-        rh = self.radius/2  # TODO: check why num_unique_visits isn't 0
-        self.children = [Node(a,b,list.copy(c), self.num_visits, e, self.num_splits+1,
+
+        rh = self.radius/2
+        # creation of the children
+        self.children = [Node(a, b, list.copy(self.pEst), self.num_visits, e, self.num_splits+1,
                               (self.state_val[0]+k0*rh, self.state_val[1]+k1*rh, self.state_val[2]+k2*rh),
                               (self.action_val[0]+k3*rh,), rh, self.rmax) for k0 in [-1,1] for k1 in [-1,1] for k2 in [-1,1] for k3 in [-1, 1]]
+        # calculating better r and q estimates based on the sample partition
         for child in self.children:
-            child.samples = [s for s in self.samples if np.max(np.abs(np.asarray(s[0:3]) - np.asarray(child.state_val))) <= child.radius]
+            child.samples = [s for s in self.samples if child.is_sample_in_child(s)]
             child.num_unique_visits = len(child.samples)
-            if len(child.samples) > 64:  # TODO: pass as argument
-                child.qVal = self.qVal*(len(child.samples)/len(self.samples))*len(self.children)
-                child.rEst = np.average([s[3] for s in child.samples])
+            if len(child.samples) >= 32:  # TODO: pass as argument
+                child.qVal = self.qVal  # TODO: think
+                child.rEst = np.average([s[4] for s in child.samples])
             else:
                 child.qVal = 2*self.rmax
                 child.rEst = self.rmax
+
+        # clearing fathers samples
         self.samples.clear()
         return self.children
 
 
-'''The tree class consists of a hierarchy of nodes'''
 class Tree():
     # Defines a tree by the number of steps for the initialization
-    def __init__(self, epLen, flag, rmax):
-        # TODO: ORG start to replace
-        # self.head = Node(epLen, 0,[0],0,0, 0, (0.5, 0.5), (0.5, 0.5), 0.5)
-        # TODO: ORG end to replace
-        # Amit: should be replaced with: (for our 3d state space and 1d action space)
-        self.head = Node(epLen, 0, [0], 0, 0, 0, (0.5, 0.5, 0.5), (0.5,), 0.5, rmax)
-        self.epLen = epLen
+    def __init__(self, flag, rmax):
+        self.head = Node(2*rmax, 0, [0], 0, 0, 0, (0.5, 0.5, 0.5), (0.5,), 0.5, rmax)
         self.flag = flag
-        # TODO: ORG start to replace
-        # self.state_leaves = [(0.5, 0.5)]
-        # TODO: ORG end to replace
-        # Amit: should be replaced with: (for our 3d state space and 1d action space)
         self.state_leaves = [(0.5, 0.5, 0.5)]
-        self.vEst = [self.epLen]
+        self.vEst = [rmax]
         self.tree_leaves = [self.head]
         self.rmax = rmax
 
@@ -125,93 +83,49 @@ class Tree():
         return self.head
 
     def split_node(self, node, timestep, previous_tree):
-        children = node.split_node(self.flag, self.epLen)
+        children = node.split_node(self.flag)
 
         # Update the list of leaves in the tree
         self.tree_leaves.remove(node)
         for child in children:
             self.tree_leaves.append(child)
 
-
-        # Determines if we also need to adjust the state_leaves and carry those
-        # estimates down as well
-
         # Gets one of their state value
         child_1_state = children[0].state_val
         child_1_radius = children[0].radius
-        # if np.min(np.max(np.abs(state_1 - child_state_1), np.abs(state_2 - child_state_2))) >= child_1_radius
-        if np.min(np.max(np.abs(np.asarray(self.state_leaves) - np.array(child_1_state)),axis=1)) >= child_1_radius:
-            # print('Adjusting the induced state partition')
-            # print('Current node state: ' + str(node.state_val))
-            # print('Child state: ' + str(child_1_state))
-            # print('Current leaves: ' + str(self.state_leaves))
 
+        # Determines if we also need to adjust the state_leaves and carry those estimates down as well
+        if np.min(np.max(np.abs(np.asarray(self.state_leaves) - np.array(child_1_state)), axis=1)) >= child_1_radius:
+            # find parents place in state_leaves and in vEst
             parent = node.state_val
-            # print('Getting parents index!')
             parent_index = self.state_leaves.index(parent)
             parent_vEst = self.vEst[parent_index]
 
+            # remove parent from leaves vectors
             self.state_leaves.pop(parent_index)
             self.vEst.pop(parent_index)
 
-            # will be appending duplicate numbers here
-
-            # self.state_leaves.append(child.state_val)
-
-            # append(children[0].state_val(0), children[0].state_val(1))
-            # TODO: ORG start to replace
-            # self.state_leaves.append(children[0].state_val)
-            # self.state_leaves.append(children[4].state_val)
-            # self.state_leaves.append(children[8].state_val)
-            # self.state_leaves.append(children[12].state_val)
-            # TODO: ORG end to replace
-            # Amit: should be replaced with: (for our 3d state space and 1d action space)
+            # appending unique state_values of the new children
             unique_state_values = list(set([child.state_val for child in children]))
             for unique_state_val in unique_state_values:
                 self.state_leaves.append(unique_state_val)
                 childvEst = np.max([child.qVal for child in children if child.state_val == unique_state_val])
-                self.vEst.append(childvEst)
-            # print('Checking lengths: ')
-            # print(len(self.state_leaves))
-            # print(len(self.vEst))
+                self.vEst.append(self.rmax)  # TODO: think
+
             # Lastly we need to adjust the transition kernel estimates from the previous tree
             if timestep >= 1:
                 previous_tree.update_transitions_after_split(parent_index, 8)
 
-            # Need to remove parent's state value from state_leaves,
-            # add in the state values for the children
-            # copy over the estimate of the value function
-            # also copy over the estimate of the transition function
-        # print(self.state_leaves)
         return children
 
     def update_transitions_after_split(self, parent_index, num_children):
-        # print('Adjusting transitions at previous timestep')
-        # print('Number of leaves: ' + str(len(self.tree_leaves)))
-        # print('Printing out length for each leaf!')
-        # for node in self.tree_leaves:
-        #     print(len(node.pEst))
-        #     print(node.pEst)
-        #     print(node)
-
-        # print('Starting to adjust')
         for node in self.tree_leaves:
-            # Adjust node.pEst
-            # Should not just be copy pasting here....
-            # print('Start adjust for a node!')
-            # print(node)
-            # print(len(node.pEst))
-            # print(node.pEst)
+            # removing parent transition prob
             pEst_parent = node.pEst[parent_index]
             node.pEst.pop(parent_index)
-            # print(len(node.pEst))
-            # print('Adding on entries now!')
-
+            # adding and normalizing transition prob for each unique state_val child
             for i in range(num_children):
                 node.pEst.append(pEst_parent/num_children)
-            # print(len(node.pEst))
-            # print(node.pEst)
-            # print('Done')
 
     # Plot function which plots the tree on a graph on [0,1]^2 with the discretization
     def plot(self, fig):
@@ -241,7 +155,6 @@ class Tree():
             for child in node.children:
                 self.plot_node(child, ax)
 
-
     # Recursive method which gets number of subchildren
     def get_num_balls(self, node):
         num_balls = 0
@@ -254,7 +167,6 @@ class Tree():
 
     def get_number_of_active_balls(self):
         return self.get_num_balls(self.head)
-
 
     # A method which implements recursion and greedily selects the selected ball
     # to have the largest qValue and contain the state being considered
@@ -286,10 +198,33 @@ class Tree():
         active_node, qVal = self.get_active_ball_recursion(state, self.head)
         return active_node, qVal
 
+    def get_active_ball_recursion_for_update(self, state, node):
+        # If the node doesn't have any children, then the largest one
+        # in the subtree must be itself
+        if node.children == None:
+            return node, node.qEst
+        else:
+            # Otherwise checks each child node
+            qEst = -np.inf  # TODO: think about this value (was 0)
+            for child in node.children:
+                # if the child node contains the current state
+                if self.state_within_node(state, child):
+                    # recursively check that node for the max one, and compare against all of them
+                    new_node, new_qEst = self.get_active_ball_recursion(state, child)
+                    if new_qEst > qEst:
+                        active_node, qEst = new_node, new_qEst
+                    elif new_qEst == qEst:
+                        r = rnd.randrange(2)
+                        if r == 0:
+                            active_node, qEst = new_node, new_qEst
+                else:
+                    pass
+        return active_node, qEst
+
+    def get_active_ball_for_update(self, state):
+        active_node, qEst = self.get_active_ball_recursion_for_update(state, self.head)
+        return active_node, qEst
+
     # Helper method which checks if a state is within the node
     def state_within_node(self, state, node):
-        # TODO: ORG start to replace
-        # return max(np.abs(state[0] - node.state_val[0]), np.abs(state[1] - node.state_val[1])) <= node.radius
-        # TODO: ORG end to replace
-        # Amit: should be replaced with: (for our 3d state space and 1d action space)
         return np.max(np.abs(np.asarray(state) - np.asarray(node.state_val))) <= node.radius
