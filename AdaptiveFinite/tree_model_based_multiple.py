@@ -130,7 +130,7 @@ class Tree():
     def plot_nodes(self, ax):
         index = 0
         for state_val in self.state_leaves:
-            node = self.get_active_ball_for_update(state_val)
+            node, _ = self.get_active_ball_for_update(state_val)
             rect = patches.Rectangle((state_val[0] - node.radius, state_val[1]-node.radius), node.radius*2,
                                      node.radius*2, linewidth=1, edgecolor='r', facecolor='none')
             ax.add_patch(rect)
