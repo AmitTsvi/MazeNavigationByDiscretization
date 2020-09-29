@@ -56,7 +56,7 @@ class AdaptiveModelBasedDiscretization(agent.FiniteHorizonAgent):
 
         # Update empirical estimate of average reward for that node
         if active_node.num_unique_visits == 32:
-            active_node.rEst = np.average([s[3] for s in active_node.samples])
+            active_node.rEst = np.average([s[4] for s in active_node.samples])
         if active_node.num_unique_visits >= 32:  # TODO: pass as argument
             active_node.rEst = ((t-1)*active_node.rEst + reward) / t
         # print('Mean reward: ' + str(active_node.rEst))

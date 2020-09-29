@@ -38,18 +38,9 @@ class Node():
         # Splits a node by covering it with 16 children, as here S times A is [0,1]^4
         # each with half the radius
     def split_node(self, flag):
-        if flag is False:  # TODO: which flag value do we need?
-            a = self.qVal
-            b = self.rEst
-            e = self.num_visits
-        else:
-            a = 2*self.rmax
-            b = self.rmax
-            e = 0
-
         rh = self.radius/2
         # creation of the children
-        self.children = [Node(a, b, list.copy(self.pEst), self.num_visits, e, self.num_splits+1,
+        self.children = [Node(self.qVal, self.rEst, list.copy(self.pEst), self.num_visits, 0, self.num_splits+1,
                               (self.state_val[0]+k0*rh, self.state_val[1]+k1*rh, self.state_val[2]+k2*rh),
                               (self.action_val[0]+k3*rh,), rh, self.rmax) for k0 in [-1,1] for k1 in [-1,1] for k2 in [-1,1] for k3 in [-1, 1]]
         # calculating better r and q estimates based on the sample partition
@@ -71,10 +62,10 @@ class Node():
 class Tree():
     # Defines a tree by the number of steps for the initialization
     def __init__(self, flag, rmax):
-        self.head = Node(2*rmax, 0, [0], 0, 0, 0, (0.5, 0.5, 0.5), (0.5,), 0.5, rmax)
+        self.head = Node(2*rmax, rmax, [0], 0, 0, 0, (0.5, 0.5, 0.5), (0.5,), 0.5, rmax)
         self.flag = flag
         self.state_leaves = [(0.5, 0.5, 0.5)]
-        self.vEst = [rmax]
+        self.vEst = [0]
         self.tree_leaves = [self.head]
         self.rmax = rmax
 
@@ -109,7 +100,7 @@ class Tree():
             unique_state_values = list(set([child.state_val for child in children]))
             for unique_state_val in unique_state_values:
                 self.state_leaves.append(unique_state_val)
-                childvEst = np.max([child.qVal for child in children if child.state_val == unique_state_val])
+                # childvEst = np.max([child.qVal for child in children if child.state_val == unique_state_val])
                 self.vEst.append(self.rmax)  # TODO: think
 
             # Lastly we need to adjust the transition kernel estimates from the previous tree
@@ -130,30 +121,26 @@ class Tree():
     # Plot function which plots the tree on a graph on [0,1]^2 with the discretization
     def plot(self, fig):
         ax = plt.gca()
-        self.plot_node(self.head, ax)
+        self.plot_nodes(ax)
         plt.xlabel('X Space')
         plt.ylabel('Y Space')
         return fig
 
     # Recursive method which plots all subchildren
-    def plot_node(self, node, ax):
-        if node.children == None:
-            # print('Child Node!')
-            rect = patches.Rectangle((node.state_val[0] - node.radius,node.state_val[1]-node.radius),node.radius*2,node.radius*2,linewidth=1,edgecolor='r',facecolor='none')
+    def plot_nodes(self, ax):
+        index = 0
+        for state_val in self.state_leaves:
+            node = self.get_active_ball_for_update(state_val)
+            rect = patches.Rectangle((state_val[0] - node.radius, state_val[1]-node.radius), node.radius*2,
+                                     node.radius*2, linewidth=1, edgecolor='r', facecolor='none')
             ax.add_patch(rect)
             # plt.text(node.state_val, node.action_val, np.around(node.qVal, 3))
             rx, ry = rect.get_xy()
             cx = rx + rect.get_width() / 2.0
             cy = ry + rect.get_height() / 2.0
-            _, qVal = self.get_active_ball(node.state_val)
-            if qVal >= 0:
-                text = '+'
-            else:
-                text = '-'
-            ax.annotate(text, (cx, cy), color='b', weight='light', fontsize=5, ha='center', va='center')
-        else:
-            for child in node.children:
-                self.plot_node(child, ax)
+            vEst = str(round(self.vEst[index], 1))
+            ax.annotate(vEst, (cx, cy), color='b', weight='light', fontsize=5, ha='center', va='center')
+            index += 1
 
     # Recursive method which gets number of subchildren
     def get_num_balls(self, node):
