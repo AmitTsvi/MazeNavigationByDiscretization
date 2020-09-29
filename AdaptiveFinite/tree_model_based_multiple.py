@@ -121,26 +121,28 @@ class Tree():
     # Plot function which plots the tree on a graph on [0,1]^2 with the discretization
     def plot(self, fig):
         ax = plt.gca()
-        self.plot_nodes(ax)
+        self.plot_node(self.head, ax)
         plt.xlabel('X Space')
         plt.ylabel('Y Space')
         return fig
 
     # Recursive method which plots all subchildren
-    def plot_nodes(self, ax):
-        index = 0
-        for state_val in self.state_leaves:
-            node, _ = self.get_active_ball_for_update(state_val)
-            rect = patches.Rectangle((state_val[0] - node.radius, state_val[1]-node.radius), node.radius*2,
-                                     node.radius*2, linewidth=1, edgecolor='r', facecolor='none')
+    def plot_node(self, node, ax):
+        if node.children == None:
+            # print('Child Node!')
+            rect = patches.Rectangle((node.state_val[0] - node.radius, node.state_val[1] - node.radius),
+                                     node.radius * 2, node.radius * 2, linewidth=1, edgecolor='r', facecolor='none')
             ax.add_patch(rect)
             # plt.text(node.state_val, node.action_val, np.around(node.qVal, 3))
             rx, ry = rect.get_xy()
             cx = rx + rect.get_width() / 2.0
             cy = ry + rect.get_height() / 2.0
-            vEst = str(round(self.vEst[index], 1))
-            ax.annotate(vEst, (cx, cy), color='b', weight='light', fontsize=5, ha='center', va='center')
-            index += 1
+            _, qEst = self.get_active_ball_for_update(node.state_val)
+            text = str(round(qEst, 1))
+            ax.annotate(text, (cx, cy), color='b', weight='light', fontsize=5, ha='center', va='center')
+        else:
+            for child in node.children:
+                self.plot_node(child, ax)
 
     # Recursive method which gets number of subchildren
     def get_num_balls(self, node):
