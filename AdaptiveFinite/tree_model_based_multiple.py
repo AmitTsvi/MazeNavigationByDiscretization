@@ -47,12 +47,15 @@ class Node():
         for child in self.children:
             child.samples = [s for s in self.samples if child.is_sample_in_child(s)]
             child.num_unique_visits = len(child.samples)
-            if len(child.samples) >= 32:  # TODO: pass as argument
-                child.qVal = self.qVal  # TODO: think
+            if child.num_unique_visits > 0:
                 child.rEst = np.average([s[4] for s in child.samples])
             else:
-                child.qVal = 2*self.rmax
                 child.rEst = self.rmax
+                child.pEst = np.zeros(len(self.pEst)).tolist()
+            if child.num_unique_visits >= 32:  # TODO: pass as argument
+                child.qVal = self.qVal  # TODO: think
+            else:
+                child.qVal = 2*self.rmax
 
         # clearing fathers samples
         self.samples.clear()
@@ -101,7 +104,7 @@ class Tree():
             for unique_state_val in unique_state_values:
                 self.state_leaves.append(unique_state_val)
                 # childvEst = np.max([child.qVal for child in children if child.state_val == unique_state_val])
-                self.vEst.append(self.rmax)  # TODO: think
+                self.vEst.append(0)  # TODO: think
 
             # Lastly we need to adjust the transition kernel estimates from the previous tree
             if timestep >= 1:
