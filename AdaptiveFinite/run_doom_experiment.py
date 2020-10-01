@@ -70,7 +70,7 @@ if __name__ == "__main__":
     nEps = 3000
     scaling = 0
     alpha = 0
-    plot_every = 100
+    plot_every = 50
     R_MAX = 1.0
     VALUE_ITERATIONS = 1
 
@@ -155,7 +155,7 @@ if __name__ == "__main__":
                 new_state = game.get_state()
                 new_bucket = state_to_bucket(new_state)
                 agent.update_obs(bucket, raw_action, reward, new_bucket, 0, active_node)
-            if t % 30 == 0:
+            if t % 20 == 0:
                 agent.update_policy(i)
             t = t + 1
 

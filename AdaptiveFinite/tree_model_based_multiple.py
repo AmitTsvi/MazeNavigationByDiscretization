@@ -199,7 +199,7 @@ class Tree():
                 # if the child node contains the current state
                 if self.state_within_node(state, child):
                     # recursively check that node for the max one, and compare against all of them
-                    new_node, new_qEst = self.get_active_ball_recursion(state, child)
+                    new_node, new_qEst = self.get_active_ball_recursion_for_update(state, child)
                     if new_qEst > qEst:
                         active_node, qEst = new_node, new_qEst
                     elif new_qEst == qEst:
