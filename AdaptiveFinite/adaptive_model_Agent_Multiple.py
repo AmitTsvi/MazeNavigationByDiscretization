@@ -89,7 +89,7 @@ class AdaptiveModelBasedDiscretization(agent.FiniteHorizonAgent):
                     vEst = 0
                 node.qEst = node.rEst + vEst
 
-                if node.num_unique_visits < 32:  # TODO: pass as argument
+                if node.num_unique_visits < 3:  # TODO: pass as argument
                     node.qVal = self.rmax
                 else:
                     node.qVal = node.qEst

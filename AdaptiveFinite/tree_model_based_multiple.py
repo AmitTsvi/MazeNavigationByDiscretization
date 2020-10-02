@@ -52,7 +52,7 @@ class Node():
             else:
                 child.rEst = self.rmax
                 child.pEst = np.zeros(len(self.pEst)).tolist()
-            if child.num_unique_visits >= 32:  # TODO: pass as argument
+            if child.num_unique_visits >= 10:  # TODO: pass as argument
                 child.qVal = self.qVal  # TODO: think
             else:
                 child.qVal = 2*self.rmax
