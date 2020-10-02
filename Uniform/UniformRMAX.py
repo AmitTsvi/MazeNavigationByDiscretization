@@ -88,6 +88,7 @@ if __name__ == "__main__":
     game.load_config(args.config)
     game.set_render_hud(False)
     game.set_screen_resolution(vzd.ScreenResolution.RES_640X480)
+    game.set_window_visible(False)
 
     # Enables information about all objects present in the current episode/level.
     game.set_objects_info_enabled(True)
