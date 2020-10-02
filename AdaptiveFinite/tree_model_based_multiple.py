@@ -147,25 +147,29 @@ class Tree():
         self.plot_node(self.head, ax)
         plt.xlabel('X Space')
         plt.ylabel('Y Space')
+
         return fig
 
     # Recursive method which plots all subchildren
     def plot_node(self, node, ax):
-        if node.children == None:
-            # print('Child Node!')
-            rect = patches.Rectangle((node.state_val[0] - node.radius, node.state_val[1] - node.radius),
-                                     node.radius * 2, node.radius * 2, linewidth=1, edgecolor='r', facecolor='none')
+        nodes_to_plot = {}
+        nodes = [((node.state_val[0], node.state_val[1], node.radius), node.qEst) for node in self.tree_leaves]
+        for node in nodes:
+            key = node[0]
+            value = node[1]
+            if key in nodes_to_plot:
+                nodes_to_plot[key] = max(nodes_to_plot[key], value)
+            else:
+                nodes_to_plot[key] = value
+        for i, (k, v) in enumerate(nodes_to_plot.items()):
+            rect = patches.Rectangle((k[0] - k[2], k[1] - k[2]),
+                                     k[2] * 2, k[2] * 2, linewidth=1, edgecolor='r', facecolor='none')
             ax.add_patch(rect)
-            # plt.text(node.state_val, node.action_val, np.around(node.qVal, 3))
             rx, ry = rect.get_xy()
             cx = rx + rect.get_width() / 2.0
             cy = ry + rect.get_height() / 2.0
-            _, qEst = self.get_active_ball_for_update(node.state_val)
-            text = str(round(qEst, 1))
+            text = str(round(v, 1))
             ax.annotate(text, (cx, cy), color='b', weight='light', fontsize='xx-small', ha='center', va='center')
-        else:
-            for child in node.children:
-                self.plot_node(child, ax)
 
     # Recursive method which gets number of subchildren
     def get_num_balls(self, node):
