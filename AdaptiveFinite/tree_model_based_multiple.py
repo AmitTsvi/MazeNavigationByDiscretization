@@ -32,7 +32,7 @@ class Node():
 
     def is_sample_in_child(self, s):
         if np.max(np.abs(np.asarray(s[0:3]) - np.asarray(self.state_val))) <= self.radius:
-            if np.max(np.abs(np.asarray(s[3]) - np.asarray(self.action_val))) <= (1/self.num_actions):
+            if np.max(np.abs(np.asarray(s[3]) - np.asarray(self.action_val))) <= (1/(2*self.num_actions)):
                 return True
         return False
 
@@ -48,12 +48,12 @@ class Node():
         for child in self.children:
             child.samples = [s for s in self.samples if child.is_sample_in_child(s)]
             child.num_unique_visits = len(child.samples)
-            if child.num_unique_visits > 0:
+            if child.num_unique_visits >= 5:
                 child.rEst = np.average([s[4] for s in child.samples])
             else:
                 child.rEst = self.rmax
                 child.pEst = np.zeros(len(self.pEst)).tolist()
-            if child.num_unique_visits >= 10:  # TODO: pass as argument
+            if child.num_unique_visits >= 5:  # TODO: pass as argument
                 child.qVal = self.qVal  # TODO: think
             else:
                 child.qVal = 2*self.rmax
@@ -162,7 +162,7 @@ class Tree():
             cy = ry + rect.get_height() / 2.0
             _, qEst = self.get_active_ball_for_update(node.state_val)
             text = str(round(qEst, 1))
-            ax.annotate(text, (cx, cy), color='b', weight='light', fontsize=5, ha='center', va='center')
+            ax.annotate(text, (cx, cy), color='b', weight='light', fontsize='xx-small', ha='center', va='center')
         else:
             for child in node.children:
                 self.plot_node(child, ax)

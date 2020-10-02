@@ -56,9 +56,9 @@ class AdaptiveModelBasedDiscretization(agent.FiniteHorizonAgent):
         active_node.samples.append(obs+(raw_action,)+(reward,))
 
         # Update empirical estimate of average reward for that node
-        if active_node.num_unique_visits == 1:
+        if active_node.num_unique_visits == 5:
             active_node.rEst = np.average([s[4] for s in active_node.samples])
-        if active_node.num_unique_visits >= 1:  # TODO: pass as argument
+        if active_node.num_unique_visits >= 5:  # TODO: pass as argument
             active_node.rEst = ((t-1)*active_node.rEst + reward) / t
         # print('Mean reward: ' + str(active_node.rEst))
 
@@ -84,14 +84,14 @@ class AdaptiveModelBasedDiscretization(agent.FiniteHorizonAgent):
 
                 # Otherwise solve for the Q Values with the bonus term
                 psum = np.sum(np.array(node.pEst))
-                if psum > 0 and node.num_unique_visits > 0:
+                if psum > 0 and node.num_unique_visits >= 5:
                     vEst = np.dot((np.asarray(node.pEst)) / (psum), next_tree.vEst)
                 else:
                     vEst = 0
                 node.qEst = node.rEst + vEst
 
-                if node.num_unique_visits < 3:  # TODO: pass as argument
-                    node.qVal = self.rmax
+                if node.num_unique_visits < 5:  # TODO: pass as argument
+                    node.qVal = 2*self.rmax
                 else:
                     node.qVal = node.qEst
 

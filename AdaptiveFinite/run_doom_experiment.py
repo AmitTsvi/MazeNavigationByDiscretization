@@ -189,7 +189,7 @@ if __name__ == "__main__":
             plt.close()
 
         if PLOT and i % plot_every == 0:
-            fig = plt.figure()
+            fig = plt.figure(dpi=900)
             tree = agent.tree_list[0]
             tree.plot(fig)
             ax = plt.gca()
@@ -197,7 +197,7 @@ if __name__ == "__main__":
                 for l in s.lines:
                     if l.is_blocking:
                         ax.plot([norm_x(l.x1), norm_x(l.x2)], [norm_y(l.y1), norm_y(l.y2)], color='black', linewidth=2)
-            fig.savefig('AdaptiveDiscretization_Episode#'+str(i)+'_Tree#'+str(0))
+            fig.savefig('AdaptiveDiscretization_Episode#'+str(i)+'_Tree#'+str(0), dpi=900)
             plt.close()
 
         if PLOT and i % plot_every == 0:
