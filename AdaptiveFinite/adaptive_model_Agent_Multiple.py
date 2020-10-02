@@ -5,7 +5,7 @@ from tree_model_based_multiple import Node, Tree
 
 class AdaptiveModelBasedDiscretization(agent.FiniteHorizonAgent):
 
-    def __init__(self, epLen, flag, rmax):
+    def __init__(self, epLen, flag, rmax, num_actions):
         '''args:
             epLen - number of trees
         '''
@@ -18,10 +18,11 @@ class AdaptiveModelBasedDiscretization(agent.FiniteHorizonAgent):
 
         # Makes a new partition for each step and adds it to the list of trees
         for h in range(epLen):
-            tree = Tree(flag, rmax)
+            tree = Tree(flag, rmax, num_actions)
             self.tree_list.append(tree)
 
         self.rmax = rmax
+        self.num_actions = num_actions
 
     def reset(self):
         # Resets the agent by setting all parameters back to zero
@@ -127,7 +128,7 @@ class AdaptiveModelBasedDiscretization(agent.FiniteHorizonAgent):
         active_node, qVal = tree.get_active_ball(state)
 
         # Picks an action uniformly in that ball
-        action = np.random.uniform(active_node.action_val[0] - active_node.radius, active_node.action_val[0] + active_node.radius)
+        action = active_node.action_val[0]
         return action, active_node
 
     def pick_action(self, state, timestep):

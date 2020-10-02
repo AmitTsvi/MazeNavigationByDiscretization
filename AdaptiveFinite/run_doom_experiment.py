@@ -87,6 +87,7 @@ if __name__ == "__main__":
     game.load_config(args.config)
     game.set_render_hud(False)
     game.set_screen_resolution(vzd.ScreenResolution.RES_640X480)
+    game.set_window_visible(False)
     game.set_objects_info_enabled(True)
     game.set_sectors_info_enabled(True)
     game.clear_available_game_variables()
@@ -123,7 +124,7 @@ if __name__ == "__main__":
         agent = pickle.load(infile)
         infile.close()
     else:
-        agent = AdaptiveModelBasedDiscretization(1, True, R_MAX)
+        agent = AdaptiveModelBasedDiscretization(1, True, R_MAX, NUM_ACTIONS)
 
     for i in range(nEps):
         print("Episode #" + str(i + 1)+". 2 seconds to end run")

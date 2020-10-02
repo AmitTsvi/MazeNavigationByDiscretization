@@ -7,7 +7,7 @@ import random as rnd
 
 
 class Node():
-    def __init__(self, qVal, rEst, pEst, num_visits, num_unique_visits, num_splits, state_val, action_val, radius, rmax):
+    def __init__(self, qVal, rEst, pEst, num_visits, num_unique_visits, num_splits, state_val, action_val, radius, rmax, num_actions):
         '''args:
         qVal - estimate of the q value
         num_visits - number of visits to the node or its ancestors
@@ -28,10 +28,11 @@ class Node():
         self.rmax = rmax
         self.samples = []
         self.qEst = 0
+        self.num_actions = num_actions
 
     def is_sample_in_child(self, s):
         if np.max(np.abs(np.asarray(s[0:3]) - np.asarray(self.state_val))) <= self.radius:
-            if np.max(np.abs(np.asarray(s[3]) - np.asarray(self.action_val))) <= self.radius:
+            if np.max(np.abs(np.asarray(s[3]) - np.asarray(self.action_val))) <= (1/self.num_actions):
                 return True
         return False
 
@@ -42,7 +43,7 @@ class Node():
         # creation of the children
         self.children = [Node(self.qVal, self.rEst, list.copy(self.pEst), self.num_visits, 0, self.num_splits+1,
                               (self.state_val[0]+k0*rh, self.state_val[1]+k1*rh, self.state_val[2]+k2*rh),
-                              (self.action_val[0]+k3*rh,), rh, self.rmax) for k0 in [-1,1] for k1 in [-1,1] for k2 in [-1,1] for k3 in [-1, 1]]
+                              (self.action_val[0],), rh, self.rmax, self.num_actions) for k0 in [-1,1] for k1 in [-1,1] for k2 in [-1,1]]
         # calculating better r and q estimates based on the sample partition
         for child in self.children:
             child.samples = [s for s in self.samples if child.is_sample_in_child(s)]
@@ -64,13 +65,32 @@ class Node():
 
 class Tree():
     # Defines a tree by the number of steps for the initialization
-    def __init__(self, flag, rmax):
-        self.head = Node(2*rmax, rmax, [0], 0, 0, 0, (0.5, 0.5, 0.5), (0.5,), 0.5, rmax)
+    def __init__(self, flag, rmax, num_actions):
+        self.head = Node(2*rmax, rmax, [0], 0, 0, 0, (0.5, 0.5, 0.5), (0.5,), 0.5, rmax, num_actions)
         self.flag = flag
         self.state_leaves = [(0.5, 0.5, 0.5)]
         self.vEst = [0]
-        self.tree_leaves = [self.head]
+        self.tree_leaves = []
         self.rmax = rmax
+        self.num_actions = num_actions
+        self.head.children = self.get_initial_children()
+        self.tree_leaves = self.head.children.copy()
+
+    def get_initial_children(self):
+        children = []
+        centers = []
+        gap = 1 / self.num_actions
+        min_bord = 0.0
+        for action in range(self.num_actions):
+            max_bord = min_bord + gap
+            center = (min_bord + max_bord)/2
+            centers.append(center)
+            min_bord = max_bord
+        print(centers)
+        for action in range(self.num_actions):
+            child = Node(2*self.rmax, self.rmax, [0], 0, 0, 0, (0.5, 0.5, 0.5), (centers[action],), 0.5, self.rmax, self.num_actions)
+            children.append(child)
+        return children
 
     # Returns the head of the tree
     def get_head(self):
