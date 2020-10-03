@@ -86,7 +86,6 @@ class Tree():
             center = (min_bord + max_bord)/2
             centers.append(center)
             min_bord = max_bord
-        print(centers)
         for action in range(self.num_actions):
             child = Node(2*self.rmax, self.rmax, [0], 0, 0, 0, (0.5, 0.5, 0.5), (centers[action],), 0.5, self.rmax, self.num_actions)
             children.append(child)
@@ -114,6 +113,7 @@ class Tree():
             parent = node.state_val
             parent_index = self.state_leaves.index(parent)
             parent_vEst = self.vEst[parent_index]
+            parent_unique_visits = node.num_unique_visits
 
             # remove parent from leaves vectors
             self.state_leaves.pop(parent_index)
@@ -126,20 +126,29 @@ class Tree():
                 # childvEst = np.max([child.qVal for child in children if child.state_val == unique_state_val])
                 self.vEst.append(0)  # TODO: think
 
+            # prepare transition distribution
+            dist = []
+            for unique_state_val in unique_state_values:
+                sum = 0
+                for child in children:
+                    if self.state_within_node(unique_state_val, child):
+                        sum += child.num_unique_visits
+                dist.append(sum/parent_unique_visits)
+
             # Lastly we need to adjust the transition kernel estimates from the previous tree
             if timestep >= 1:
-                previous_tree.update_transitions_after_split(parent_index, 8)
+                previous_tree.update_transitions_after_split(parent_index, 8, dist)
 
         return children
 
-    def update_transitions_after_split(self, parent_index, num_children):
+    def update_transitions_after_split(self, parent_index, num_children, dist):
         for node in self.tree_leaves:
             # removing parent transition prob
             pEst_parent = node.pEst[parent_index]
             node.pEst.pop(parent_index)
             # adding and normalizing transition prob for each unique state_val child
             for i in range(num_children):
-                node.pEst.append(pEst_parent/num_children)
+                node.pEst.append(pEst_parent*dist[i])
 
     # Plot function which plots the tree on a graph on [0,1]^2 with the discretization
     def plot(self, fig):
@@ -147,7 +156,6 @@ class Tree():
         self.plot_node(self.head, ax)
         plt.xlabel('X Space')
         plt.ylabel('Y Space')
-
         return fig
 
     # Recursive method which plots all subchildren
