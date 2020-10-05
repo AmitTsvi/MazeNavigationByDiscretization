@@ -203,6 +203,7 @@ if __name__ == "__main__":
         if PLOT and i % plot_every == 0:
             sns.set()
             ax = sns.heatmap(np.transpose(np.sum(n_visits, axis=(2, 3))))
+            ax.invert_yaxis()
             fig = ax.get_figure()
             fig.savefig("Episode#"+str(i)+"_HeatMap")
             plt.close()
