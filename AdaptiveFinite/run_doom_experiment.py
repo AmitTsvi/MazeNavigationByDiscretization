@@ -117,14 +117,17 @@ if __name__ == "__main__":
     disc_angle = 90
     NUM_ACTIONS = len(actions)
     NUM_BUCKETS = (int((max_x-min_x)/disc_diff), int((max_y-min_y)/disc_diff), int((max_angle-min_angle)/disc_angle))
-    n_visits = np.zeros(NUM_BUCKETS + (NUM_ACTIONS,), dtype=float)
 
     if LOAD is True:
         infile = open('PickledAgent', 'rb')
         agent = pickle.load(infile)
         infile.close()
+        f = open('state_visits.npy', 'rb')
+        n_visits = np.load(f)
+        f.close()
     else:
         agent = AdaptiveModelBasedDiscretization(1, True, R_MAX, NUM_ACTIONS)
+        n_visits = np.zeros(NUM_BUCKETS + (NUM_ACTIONS,), dtype=float)
 
     for i in range(nEps):
         print("Episode #" + str(i + 1)+". 2 seconds to end run")
@@ -133,6 +136,9 @@ if __name__ == "__main__":
             outfile = open("PickledAgent", 'wb')
             pickle.dump(agent, outfile)
             outfile.close()
+            f = open('state_visits.npy', 'wb')
+            np.save(f, n_visits)
+            f.close()
             game.close()
             exit()
         f = open(str(datetime.datetime.now()).split()[0]+'.log', 'a')
@@ -212,4 +218,7 @@ if __name__ == "__main__":
         outfile = open("PickledAgent", 'wb')
         pickle.dump(agent, outfile)
         outfile.close()
+        f = open('state_visits.npy', 'wb')
+        np.save(f, n_visits)
+        f.close()
     game.close()
