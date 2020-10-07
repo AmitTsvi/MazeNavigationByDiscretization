@@ -11,10 +11,11 @@ from decimal import *
 import numpy as np
 import datetime
 import seaborn as sns
+import sys, select
 
-DEFAULT_CONFIG = "../scenarios/my_way_home_allpoints.cfg"
+DEFAULT_CONFIG = "../scenarios/my_way_home_onespawn.cfg"
 PLOT = True
-LOAD = True
+LOAD = False
 SAVE = True
 
 
@@ -71,6 +72,27 @@ def update_value_functions(full=False, path=[]):
                     update = True
 
 
+def save_matrices():
+    f = open('prob.npy', 'wb')
+    np.save(f, p_table)
+    f.close()
+    f = open('value.npy', 'wb')
+    np.save(f, value_table_temp)
+    f.close()
+    f = open('q_function.npy', 'wb')
+    np.save(f, q_table)
+    f.close()
+    f = open('reward.npy', 'wb')
+    np.save(f, r_table)
+    f.close()
+    f = open('state_visits.npy', 'wb')
+    np.save(f, n_visits)
+    f.close()
+    f = open('transitions.npy', 'wb')
+    np.save(f, n_transitions)
+    f.close()
+
+
 if __name__ == "__main__":
     parser = ArgumentParser("ViZDoom example showing how to use information about objects and map.")
     parser.add_argument(dest="config",
@@ -124,7 +146,7 @@ if __name__ == "__main__":
 
     update_area = 10
 
-    plot_after = 96
+    plot_every = 50
 
     # NUM_BUCKETS = (int((max_x-min_x)/disc_diff), int((max_y-min_y)/disc_diff))
     NUM_BUCKETS = (int((max_x-min_x)/disc_diff), int((max_y-min_y)/disc_diff), int((max_angle-min_angle)/disc_angle))
@@ -137,7 +159,7 @@ if __name__ == "__main__":
     R_MAX = 1.0
     M_VISITS_TO_KNOWN = 1  # Increase for more exploration
 
-    episodes = 100
+    episodes = 300
     sleep_time = 1.0 / vzd.DEFAULT_TICRATE  # = 0.028
 
     if LOAD is False:
@@ -176,15 +198,21 @@ if __name__ == "__main__":
     episode_path = []
 
     for i in range(episodes):
-        print("Episode #" + str(i + 1))
+        print("Episode #" + str(i + 1)+". 2 seconds to end run")
+        q, o, e = select.select([sys.stdin], [], [], 2)
+        if (q):
+            save_matrices()
+            game.close()
+            exit()
         f = open(str(datetime.datetime.now()).split()[0]+'.log', 'a')
-        if PLOT and i >= plot_after:
+        if PLOT and i % plot_every == 0:
             plt.show()
         # Not needed for the first episode but the loop is nicer.
         game.new_episode()
         state = game.get_state()
         final_state = 0
         total_reward = 0
+        first_step = True
         while not game.is_episode_finished():
             # Gets the state
             state = game.get_state()
@@ -214,7 +242,7 @@ if __name__ == "__main__":
             #       state.game_variables[2])
             # print("Objects:")
 
-            if PLOT and i >= plot_after:
+            if PLOT and i % plot_every == 0:
                 # Print information about objects present in the episode.
                 for o in state.objects:
                     if o.name == "DoomPlayer":
@@ -225,14 +253,12 @@ if __name__ == "__main__":
                 # print("=====================")
                 # print("Sectors:")
                 # Print information about sectors.
-                for s in state.sectors:
-                    # print("Sector floor height:", s.floor_height, ", ceiling height:", s.ceiling_height)
-                    # print("Sector lines:", [(l.x1, l.y1, l.x2, l.y2, l.is_blocking) for l in s.lines])
-
-                    # Plot sector on map
-                    for l in s.lines:
-                        if l.is_blocking:
-                            plt.plot([l.x1, l.x2], [l.y1, l.y2], color='black', linewidth=2)
+                if first_step is True:
+                    for s in state.sectors:
+                        for l in s.lines:
+                            if l.is_blocking:
+                                plt.plot([l.x1, l.x2], [l.y1, l.y2], color='black', linewidth=2)
+                    first_step = False
 
                 # Show map
                 # plt.show()
@@ -243,7 +269,7 @@ if __name__ == "__main__":
         update_value_functions(True, episode_path)
         f.write("Episode "+str(i)+" State #"+str(final_state)+" Total reward: "+str(total_reward)+"\n")
         f.close()
-        if PLOT and i >= plot_after:
+        if PLOT and i % plot_every == 0:
             plt.savefig("Episode"+str(i))
             plt.close()
             sns.set()
