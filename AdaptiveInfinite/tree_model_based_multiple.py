@@ -252,3 +252,16 @@ class Tree():
     # Helper method which checks if a state is within the node
     def state_within_node(self, state, node):
         return np.max(np.abs(np.asarray(state) - np.asarray(node.state_val))) <= node.radius
+
+    def rescale_recursion(self, node, quadrant, factor):
+        node.pEst += [0, 0, 0, 0, 0, 0, 0, 0, 0]
+        node.state_val = node.state_val
+        node.radius = node.radius/2
+        if node.children != None:
+            node.samples = []
+        else:
+            for child in node.children:
+                self.rescale_recursion(child)
+
+    def rescale(self, quadrant, factor):
+        self.rescale_recursion(self.head, quadrant, factor)

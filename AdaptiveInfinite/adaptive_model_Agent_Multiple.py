@@ -136,5 +136,5 @@ class AdaptiveModelBasedDiscretization(agent.FiniteHorizonAgent):
         return action, active_node
 
     def rescale(self, quadrant, factor):
-
-        pass
+        tree = self.tree_list[0]
+        tree.rescale(quadrant, factor)
