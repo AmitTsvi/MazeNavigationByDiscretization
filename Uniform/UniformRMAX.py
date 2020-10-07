@@ -12,6 +12,7 @@ import numpy as np
 import datetime
 import seaborn as sns
 import sys, select
+from math import ceil
 
 DEFAULT_CONFIG = "../scenarios/my_way_home_onespawn.cfg"
 PLOT = True
@@ -149,7 +150,7 @@ if __name__ == "__main__":
     plot_every = 50
 
     # NUM_BUCKETS = (int((max_x-min_x)/disc_diff), int((max_y-min_y)/disc_diff))
-    NUM_BUCKETS = (int((max_x-min_x)/disc_diff), int((max_y-min_y)/disc_diff), int((max_angle-min_angle)/disc_angle))
+    NUM_BUCKETS = (ceil((max_x-min_x)/disc_diff), ceil((max_y-min_y)/disc_diff), int((max_angle-min_angle)/disc_angle))
     print("NUM_BUCKETS"+str(NUM_BUCKETS))
     NUM_ACTIONS = len(actions)
     print("NUM_ACTIONS"+str(NUM_ACTIONS))
