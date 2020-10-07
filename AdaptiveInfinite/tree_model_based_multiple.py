@@ -253,15 +253,68 @@ class Tree():
     def state_within_node(self, state, node):
         return np.max(np.abs(np.asarray(state) - np.asarray(node.state_val))) <= node.radius
 
-    def rescale_recursion(self, node, quadrant, factor):
-        node.pEst += [0, 0, 0, 0, 0, 0, 0, 0, 0]
-        node.state_val = node.state_val
-        node.radius = node.radius/2
-        if node.children != None:
-            node.samples = []
+    def rescale_recursion(self, node, quadrant):
+        node.pEst += [0, 0, 0, 0, 0, 0]
+        node.radius = node.radius / 2
+        node.num_splits += 1
+        x = node.state_val[0]
+        y = node.state_val[1]
+        theta = node.state_val[2]
+        if quadrant == 1:
+            node.state_val = (x/2+0.5, y/2+0.5, theta)
+            if node.children != None:
+                node.samples = [(s[0]/2+0.5, s[1]/2+0.5, s[2], s[3], s[4]) for s in node.samples]
+        if quadrant == 2:
+            node.state_val = (x/2-0.5, y/2+0.5, theta)
+            if node.children != None:
+                node.samples = [(s[0]/2-0.5, s[1]/2+0.5, s[2], s[3], s[4]) for s in node.samples]
+        if quadrant == 3:
+            node.state_val = (x/2-0.5, y/2-0.5, theta)
+            if node.children != None:
+                node.samples = [(s[0]/2-0.5, s[1]/2-0.5, s[2], s[3], s[4]) for s in node.samples]
+        if quadrant == 4:
+            node.state_val = (x/2+0.5, y/2-0.5, theta)
+            if node.children != None:
+                node.samples = [(s[0]/2+0.5, s[1]/2-0.5, s[2], s[3], s[4]) for s in node.samples]
         else:
             for child in node.children:
-                self.rescale_recursion(child)
+                self.rescale_recursion(child, quadrant)
 
-    def rescale(self, quadrant, factor):
-        self.rescale_recursion(self.head, quadrant, factor)
+    def rescale(self, quadrant):  # TODO: maybe we need copy or deep copy if the old tree is erased automatically
+        self.rescale_recursion(self.head, quadrant)
+        new_tree = Tree(self.flag, self.rmax, self.num_actions)  # The new tree
+        new_tree.vEst = self.vEst + [0, 0, 0, 0, 0, 0]  # vEst fix
+        for action in self.num_actions:  # first adding the old tree's children to the new one
+            new_tree.head.children[action].children.append(self.head.children[action])
+        new_state_leaves = []  # place holder
+        if quadrant == 1:
+            self.state_leaves = [(s[0]/2+0.5, s[1]/2+0.5, s[2]) for s in self.state_leaves]  # rescaling the old ones
+            new_state_leaves = [(0.25, 0.25, 0.25), (0.25, 0.25, 0.75),
+                                (0.75, 0.25, 0.25), (0.75, 0.25, 0.75),
+                                (0.25, 0.75, 0.25), (0.25, 0.75, 0.75)]
+        if quadrant == 2:
+            self.state_leaves = [(s[0]/2-0.5, s[1]/2+0.5, s[2]) for s in self.state_leaves]
+            new_state_leaves = [(0.25, 0.25, 0.25), (0.25, 0.25, 0.75),
+                                (0.75, 0.25, 0.25), (0.75, 0.25, 0.75),
+                                (0.75, 0.75, 0.25), (0.75, 0.75, 0.75)]
+        if quadrant == 3:
+            self.state_leaves = [(s[0]/2-0.5, s[1]/2-0.5, s[2]) for s in self.state_leaves]
+            new_state_leaves = [(0.75, 0.25, 0.25), (0.75, 0.25, 0.75),
+                                (0.25, 0.75, 0.25), (0.25, 0.75, 0.75),
+                                (0.75, 0.75, 0.25), (0.75, 0.75, 0.75)]
+        if quadrant == 4:
+            self.state_leaves = [(s[0]/2+0.5, s[1]/2-0.5, s[2]) for s in self.state_leaves]
+            new_state_leaves = [(0.25, 0.25, 0.25), (0.25, 0.25, 0.75),
+                                (0.25, 0.75, 0.25), (0.25, 0.75, 0.75),
+                                (0.75, 0.75, 0.25), (0.75, 0.75, 0.75)]
+        new_tree.state_leaves = self.state_leaves + new_state_leaves  # combining to the new tree
+        new_nodes = []
+        for action in self.num_actions:
+            action_val = new_tree.head.children[action].action_val
+            new_nodes += [Node(2*self.rmax, self.rmax, np.zeros(len(new_tree.vEst)).tolist(), 0, 0, 1,
+                                new_state_leaf, (action_val,), 0.25, self.rmax, self.num_actions)
+                                for new_state_leaf in new_state_leaves]  # accumulating new nodes
+            new_tree.head.children[action].children += new_nodes  # adding for each action branch the right nodes
+        new_tree.tree_leaves += self.tree_leaves + new_nodes  # combining to the new tree
+        # TODO: check that tree_leaves are pointers and affected by the recursive rescaling
+        return new_tree

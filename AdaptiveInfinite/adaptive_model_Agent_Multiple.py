@@ -31,7 +31,7 @@ class AdaptiveModelBasedDiscretization(agent.FiniteHorizonAgent):
 
         # Makes a new partition for each step and adds it to the list of trees
         for h in range(self.epLen):
-            tree = Tree(self.flag, self.rmax)
+            tree = Tree(self.flag, self.rmax, self.num_actions)
             self.tree_list.append(tree)
 
         # Gets the number of arms for each tree and adds them together
@@ -137,4 +137,5 @@ class AdaptiveModelBasedDiscretization(agent.FiniteHorizonAgent):
 
     def rescale(self, quadrant, factor):
         tree = self.tree_list[0]
-        tree.rescale(quadrant, factor)
+        tree = tree.rescale(quadrant, factor)
+        self.tree_list[0] = tree
