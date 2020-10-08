@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-PATH = "C:/Users/amitt/Desktop/TestLog/"
-FILES = ['2020-10-05.log', '2020-10-06.log', '2020-10-06_2.log']
+PATH = "C:/Users/amitt/Desktop/ProjectB/ActiveGit/Uniform/Results/DiscDiff20/"
+FILES = ['2020-10-07.log']
 
 
 def sort_by_episode(a, i):
