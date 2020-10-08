@@ -10,7 +10,7 @@ import pickle
 import sys, select
 
 
-DEFAULT_CONFIG = "../scenarios/my_way_home_onespawn.cfg"
+DEFAULT_CONFIG = "../GeneralFiles/my_way_home_onespawn.cfg"
 PLOT = True
 LOAD = False
 SAVE = True
@@ -26,17 +26,21 @@ def check_for_rescale(state):
     new_max_y = max_y + y_width
     # currently always rescaling by doubling on each axis
     # numbering according to graph quadrants order
-    if state.game_variables[0] < min_x and state.game_variables[1] < min_y:
-        agent.rescale(1, 2)  # The current scope will be Quadrant I of the new scope
+    if (state.game_variables[0] < min_x and state.game_variables[1] < min_y) or \
+            (state.game_variables[0] < min_x and state.game_variables[1] <= max_y):  # only x is out of border
+        agent.rescale(1)  # The current scope will be Quadrant I of the new scope
         return tuple([max_x, new_min_x, max_y, new_min_y])
-    if state.game_variables[0] > max_x and state.game_variables[1] < min_y:
-        agent.rescale(2, 2)  # The current scope will be Quadrant II of the new scope
+    if (state.game_variables[0] > max_x and state.game_variables[1] < min_y) or\
+            (state.game_variables[0] >= min_x and state.game_variables[1] < min_y):  # only y is out of border
+        agent.rescale(2)  # The current scope will be Quadrant II of the new scope
         return tuple([new_max_x, min_x, max_y, new_min_y])
-    if state.game_variables[0] > max_x and state.game_variables[1] > max_y:
-        agent.rescale(3, 2)  # The current scope will be Quadrant II of the new scope
+    if (state.game_variables[0] > max_x and state.game_variables[1] > max_y) or \
+            (state.game_variables[0] > max_x and state.game_variables[1] >= min_y):  # only x is out of border
+        agent.rescale(3)  # The current scope will be Quadrant II of the new scope
         return tuple([new_max_x, min_x, new_max_y, min_y])
-    if state.game_variables[0] < min_x and state.game_variables[1] > max_y:
-        agent.rescale(4, 2)  # The current scope will be Quadrant II of the new scope
+    if (state.game_variables[0] < min_x and state.game_variables[1] > max_y) or \
+            (state.game_variables[0] <= max_x and state.game_variables[1] > max_y):  # only y is out of border
+        agent.rescale(4)  # The current scope will be Quadrant II of the new scope
         return tuple([max_x, new_min_x, new_max_y, min_y])
     return tuple([max_x, min_x, max_y, min_y])
     # assign to x_max x_min...
@@ -96,7 +100,7 @@ if __name__ == "__main__":
     nEps = 3000
     scaling = 0
     alpha = 0
-    plot_every = 50
+    plot_every = 1
     R_MAX = 1.0
     VALUE_ITERATIONS = 1
 
@@ -164,16 +168,16 @@ if __name__ == "__main__":
 
     for i in range(nEps):
         print("Episode #" + str(i + 1)+". 2 seconds to end run")
-        q, o, e = select.select([sys.stdin], [], [], 2)
-        if (q):
-            outfile = open("PickledAgent", 'wb')
-            pickle.dump(agent, outfile)
-            outfile.close()
-            f = open('state_visits.npy', 'wb')
-            np.save(f, n_visits)
-            f.close()
-            game.close()
-            exit()
+        # q, o, e = select.select([sys.stdin], [], [], 2)  # TODO: uncomment in linux
+        # if (q):
+        #     outfile = open("PickledAgent", 'wb')
+        #     pickle.dump(agent, outfile)
+        #     outfile.close()
+        #     f = open('state_visits.npy', 'wb')
+        #     np.save(f, n_visits)
+        #     f.close()
+        #     game.close()
+        #     exit()
         f = open(str(datetime.datetime.now()).split()[0]+'.log', 'a')
         if PLOT and i % plot_every == 0:
             plt.show()
