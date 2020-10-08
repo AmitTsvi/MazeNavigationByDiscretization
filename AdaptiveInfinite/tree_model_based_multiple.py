@@ -316,9 +316,10 @@ class Tree():
         new_nodes = []
         for action in range(self.num_actions):
             action_val = new_tree.head.children[action].action_val
-            new_nodes += [Node(2*self.rmax, self.rmax, np.zeros(len(new_tree.vEst)).tolist(), 0, 0, 1,
+            action_nodes = [Node(2*self.rmax, self.rmax, np.zeros(len(new_tree.vEst)).tolist(), 0, 0, 1,
                                 new_state_leaf, action_val, 0.25, self.rmax, self.num_actions)
                                 for new_state_leaf in new_state_leaves]  # accumulating new nodes
-            new_tree.head.children[action].children += new_nodes  # adding for each action branch the right nodes
+            new_tree.head.children[action].children += action_nodes  # adding for each action branch the right nodes
+            new_nodes += action_nodes
         new_tree.tree_leaves = self.tree_leaves + new_nodes  # combining to the new tree
         return new_tree
