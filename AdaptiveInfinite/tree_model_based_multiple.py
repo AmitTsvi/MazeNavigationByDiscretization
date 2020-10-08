@@ -112,7 +112,7 @@ class Tree():
         childe_1_theta_radius = children[0].theta_radius
 
         # Determines if we also need to adjust the state_leaves and carry those estimates down as well
-        if (np.min(np.max(np.abs(np.asarray(self.state_leaves)[:,0:2] - np.array(child_1_state[0:2])), axis=1)) >= child_1_radius) and \
+        if (np.min(np.max(np.abs(np.asarray(self.state_leaves)[:,0:2] - np.array(child_1_state[0:2])), axis=1)) >= child_1_radius) or \
                 (np.min(np.max(np.abs(np.asarray(self.state_leaves)[:,2:3] - np.array(child_1_state[2])), axis=1)) >= childe_1_theta_radius):
             # find parents place in state_leaves and in vEst
             parent = node.state_val
@@ -260,7 +260,7 @@ class Tree():
                (np.max(np.abs(np.asarray(state[2]) - np.asarray(node.state_val[2]))) <= node.theta_radius)
 
     def rescale_recursion(self, node, quadrant):
-        node.pEst += [0, 0, 0, 0, 0, 0]
+        node.pEst += [0, 0, 0]
         node.radius = node.radius / 2
         node.num_splits += 1
         x = node.state_val[0]
@@ -289,36 +289,28 @@ class Tree():
     def rescale(self, quadrant):  # TODO: maybe we need copy or deep copy if the old tree is erased automatically
         self.rescale_recursion(self.head, quadrant)
         new_tree = Tree(self.flag, self.rmax, self.num_actions)  # The new tree
-        new_tree.vEst = self.vEst + [0, 0, 0, 0, 0, 0]  # vEst fix
+        new_tree.vEst = self.vEst + [0, 0, 0]  # vEst fix
         for action in range(self.num_actions):  # first adding the old tree's children to the new one
             new_tree.head.children[action].children = [self.head.children[action]]  # TODO: if this is an empty action node then insert the state_val to state_leaves
         new_state_leaves = []  # place holder
         if quadrant == 1:
             self.state_leaves = [(s[0]/2+0.5, s[1]/2+0.5, s[2]) for s in self.state_leaves]  # rescaling the old ones
-            new_state_leaves = [(0.25, 0.25, 0.25), (0.25, 0.25, 0.75),
-                                (0.75, 0.25, 0.25), (0.75, 0.25, 0.75),
-                                (0.25, 0.75, 0.25), (0.25, 0.75, 0.75)]
+            new_state_leaves = [(0.25, 0.25, 0.5), (0.75, 0.25, 0.5), (0.25, 0.75, 0.5)]
         if quadrant == 2:
             self.state_leaves = [(s[0]/2, s[1]/2+0.5, s[2]) for s in self.state_leaves]
-            new_state_leaves = [(0.25, 0.25, 0.25), (0.25, 0.25, 0.75),
-                                (0.75, 0.25, 0.25), (0.75, 0.25, 0.75),
-                                (0.75, 0.75, 0.25), (0.75, 0.75, 0.75)]
+            new_state_leaves = [(0.25, 0.25, 0.5), (0.75, 0.25, 0.5), (0.75, 0.75, 0.5)]
         if quadrant == 3:
             self.state_leaves = [(s[0]/2, s[1]/2, s[2]) for s in self.state_leaves]
-            new_state_leaves = [(0.75, 0.25, 0.25), (0.75, 0.25, 0.75),
-                                (0.25, 0.75, 0.25), (0.25, 0.75, 0.75),
-                                (0.75, 0.75, 0.25), (0.75, 0.75, 0.75)]
+            new_state_leaves = [(0.75, 0.25, 0.5), (0.25, 0.75, 0.5), (0.75, 0.75, 0.5)]
         if quadrant == 4:
             self.state_leaves = [(s[0]/2+0.5, s[1]/2, s[2]) for s in self.state_leaves]
-            new_state_leaves = [(0.25, 0.25, 0.25), (0.25, 0.25, 0.75),
-                                (0.25, 0.75, 0.25), (0.25, 0.75, 0.75),
-                                (0.75, 0.75, 0.25), (0.75, 0.75, 0.75)]
+            new_state_leaves = [(0.25, 0.25, 0.5), (0.25, 0.75, 0.5), (0.75, 0.75, 0.5)]
         new_tree.state_leaves = self.state_leaves + new_state_leaves  # combining to the new tree
         new_nodes = []
         for action in range(self.num_actions):
             action_val = new_tree.head.children[action].action_val
             action_nodes = [Node(2*self.rmax, self.rmax, np.zeros(len(new_tree.vEst)).tolist(), 0, 0, 1,
-                                new_state_leaf, action_val, 0.25, self.rmax, self.num_actions, 0.25)
+                                new_state_leaf, action_val, 0.25, self.rmax, self.num_actions, 0.5)
                                 for new_state_leaf in new_state_leaves]  # accumulating new nodes
             new_tree.head.children[action].children += action_nodes  # adding for each action branch the right nodes
             new_nodes += action_nodes

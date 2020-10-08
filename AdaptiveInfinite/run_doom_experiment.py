@@ -10,7 +10,7 @@ import pickle
 import sys, select
 
 
-DEFAULT_CONFIG = "../GeneralFiles/my_way_home_onespawn.cfg"
+DEFAULT_CONFIG = "../scenarios/my_way_home_onespawn.cfg"
 PLOT = True
 LOAD = False
 SAVE = True
@@ -168,16 +168,16 @@ if __name__ == "__main__":
 
     for i in range(nEps):
         print("Episode #" + str(i + 1)+". 2 seconds to end run")
-        # q, o, e = select.select([sys.stdin], [], [], 2)  # TODO: uncomment in linux
-        # if (q):
-        #     outfile = open("PickledAgent", 'wb')
-        #     pickle.dump(agent, outfile)
-        #     outfile.close()
-        #     f = open('state_visits.npy', 'wb')
-        #     np.save(f, n_visits)
-        #     f.close()
-        #     game.close()
-        #     exit()
+        q, o, e = select.select([sys.stdin], [], [], 2)  # TODO: uncomment in linux
+        if (q):
+            outfile = open("PickledAgent", 'wb')
+            pickle.dump(agent, outfile)
+            outfile.close()
+            f = open('state_visits.npy', 'wb')
+            np.save(f, n_visits)
+            f.close()
+            game.close()
+            exit()
         f = open(str(datetime.datetime.now()).split()[0]+'.log', 'a')
         if PLOT and i % plot_every == 0:
             plt.show()
