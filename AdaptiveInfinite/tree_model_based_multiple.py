@@ -290,7 +290,7 @@ class Tree():
         new_tree = Tree(self.flag, self.rmax, self.num_actions)  # The new tree
         new_tree.vEst = self.vEst + [0, 0, 0, 0, 0, 0]  # vEst fix
         for action in range(self.num_actions):  # first adding the old tree's children to the new one
-            new_tree.head.children[action].children = [self.head.children[action]]
+            new_tree.head.children[action].children = [self.head.children[action]]  # TODO: if this is an empty action node then insert the state_val to state_leaves
         new_state_leaves = []  # place holder
         if quadrant == 1:
             self.state_leaves = [(s[0]/2+0.5, s[1]/2+0.5, s[2]) for s in self.state_leaves]  # rescaling the old ones
