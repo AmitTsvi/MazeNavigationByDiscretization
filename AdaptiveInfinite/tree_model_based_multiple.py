@@ -7,7 +7,7 @@ import random as rnd
 
 
 class Node():
-    def __init__(self, qVal, rEst, pEst, num_visits, num_unique_visits, num_splits, state_val, action_val, radius, rmax, num_actions):
+    def __init__(self, qVal, rEst, pEst, num_visits, num_unique_visits, num_splits, state_val, action_val, radius, rmax, num_actions, theta_radius):
         '''args:
         qVal - estimate of the q value
         num_visits - number of visits to the node or its ancestors
@@ -29,7 +29,7 @@ class Node():
         self.samples = []
         self.qEst = 0
         self.num_actions = num_actions
-        self.theta_radius = radius
+        self.theta_radius = theta_radius
 
     def is_sample_in_child(self, s):
         if np.max(np.abs(np.asarray(s[0:2]) - np.asarray(self.state_val[0:2]))) <= self.radius:
@@ -42,10 +42,11 @@ class Node():
         # each with half the radius
     def split_node(self, flag):
         rh = self.radius/2
+        rh_theta = self.theta_radius/2
         # creation of the children
         self.children = [Node(self.qVal, self.rEst, list.copy(self.pEst), self.num_visits, 0, self.num_splits+1,
-                              (self.state_val[0]+k0*rh, self.state_val[1]+k1*rh, self.state_val[2]+k2*rh),
-                              (self.action_val[0],), rh, self.rmax, self.num_actions) for k0 in [-1,1] for k1 in [-1,1] for k2 in [-1,1]]
+                              (self.state_val[0]+k0*rh, self.state_val[1]+k1*rh, self.state_val[2]+k2*rh_theta),
+                              (self.action_val[0],), rh, self.rmax, self.num_actions, rh_theta) for k0 in [-1,1] for k1 in [-1,1] for k2 in [-1,1]]
         # calculating better r and q estimates based on the sample partition
         for child in self.children:
             child.samples = [s for s in self.samples if child.is_sample_in_child(s)]
@@ -68,7 +69,7 @@ class Node():
 class Tree():
     # Defines a tree by the number of steps for the initialization
     def __init__(self, flag, rmax, num_actions):
-        self.head = Node(2*rmax, rmax, [0], 0, 0, 0, (0.5, 0.5, 0.5), (0.5,), 0.5, rmax, num_actions)
+        self.head = Node(2*rmax, rmax, [0], 0, 0, 0, (0.5, 0.5, 0.5), (0.5,), 0.5, rmax, num_actions, 0.5)
         self.flag = flag
         self.state_leaves = [(0.5, 0.5, 0.5)]
         self.vEst = [0]
@@ -89,7 +90,7 @@ class Tree():
             centers.append(center)
             min_bord = max_bord
         for action in range(self.num_actions):
-            child = Node(2*self.rmax, self.rmax, [0], 0, 0, 0, (0.5, 0.5, 0.5), (centers[action],), 0.5, self.rmax, self.num_actions)
+            child = Node(2*self.rmax, self.rmax, [0], 0, 0, 0, (0.5, 0.5, 0.5), (centers[action],), 0.5, self.rmax, self.num_actions, 0.5)
             children.append(child)
         return children
 
@@ -317,7 +318,7 @@ class Tree():
         for action in range(self.num_actions):
             action_val = new_tree.head.children[action].action_val
             action_nodes = [Node(2*self.rmax, self.rmax, np.zeros(len(new_tree.vEst)).tolist(), 0, 0, 1,
-                                new_state_leaf, action_val, 0.25, self.rmax, self.num_actions)
+                                new_state_leaf, action_val, 0.25, self.rmax, self.num_actions, 0.25)
                                 for new_state_leaf in new_state_leaves]  # accumulating new nodes
             new_tree.head.children[action].children += action_nodes  # adding for each action branch the right nodes
             new_nodes += action_nodes
