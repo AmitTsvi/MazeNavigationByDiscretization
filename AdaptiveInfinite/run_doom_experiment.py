@@ -110,7 +110,7 @@ def plot_discretization(i, t):
 
 
 if __name__ == "__main__":
-    nEps = 301
+    nEps = 901
     scaling = 0
     alpha = 0
     plot_every = 50
@@ -145,8 +145,8 @@ if __name__ == "__main__":
     ticks = 5
 
     # Initial borders
-    initial_width = 20
-    initial_height = 20
+    initial_width = 40
+    initial_height = 40
     dummy_state = game.get_state()
     min_x = dummy_state.game_variables[0] - initial_width/2
     max_x = dummy_state.game_variables[0] + initial_width/2
@@ -172,12 +172,14 @@ if __name__ == "__main__":
         infile = open('PickledAgent', 'rb')
         agent = pickle.load(infile)
         infile.close()
+        max_x, min_x, max_y, min_y = agent.get_limits()
         f = open('state_visits.npy', 'rb')
         n_visits = np.load(f)
         f.close()
     else:
         agent = AdaptiveModelBasedDiscretization(1, True, R_MAX, NUM_ACTIONS)
         n_visits = np.zeros(NUM_BUCKETS + (NUM_ACTIONS,), dtype=float)
+        agent.set_limits((max_x, min_x, max_y, min_y))
 
     for i in range(nEps):
         print("Episode #" + str(i + 1)+". 2 seconds to end run")
@@ -223,6 +225,7 @@ if __name__ == "__main__":
             t = t + 1
             if new_borders != old_borders:
                 plot_discretization(i, t)
+                agent.set_limits(new_borders)
 
             print("State #" + str(state.number))
             final_state = state.number
