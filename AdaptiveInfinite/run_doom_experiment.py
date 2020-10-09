@@ -96,11 +96,24 @@ def find_maze_borders(state):
     return tuple([max_x, min_x, max_y, min_y])
 
 
+def plot_discretization(i, t):
+    fig = plt.figure(dpi=900)
+    tree = agent.tree_list[0]
+    tree.plot(fig)
+    ax = plt.gca()
+    for s in dummy_state.sectors:
+        for l in s.lines:
+            if l.is_blocking:
+                ax.plot([norm_x(l.x1), norm_x(l.x2)], [norm_y(l.y1), norm_y(l.y2)], color='black', linewidth=2)
+    fig.savefig('AdaptiveDiscretization_Episode#' + str(i) + '_Step#' + str(t), dpi=900)
+    plt.close()
+
+
 if __name__ == "__main__":
-    nEps = 3000
+    nEps = 301
     scaling = 0
     alpha = 0
-    plot_every = 1
+    plot_every = 50
     R_MAX = 1.0
     VALUE_ITERATIONS = 1
 
@@ -185,6 +198,8 @@ if __name__ == "__main__":
         final_state = 0
         total_reward = 0
         t = 0
+        if i == 0:
+            plot_discretization(i, t)
         while not game.is_episode_finished():
             state = game.get_state()
             bucket = state_to_bucket(state)
@@ -192,6 +207,7 @@ if __name__ == "__main__":
             reward = game.make_action(actions[action], ticks)
             total_reward += reward
             add_obs_to_heat_map(state, action)
+            old_borders = (max_x, min_x, max_y, min_y)
             if game.is_episode_finished() and reward > TARGET_REWARD:
                 max_x, min_x, max_y, min_y = check_for_rescale(dummy_state)
                 new_bucket = state_to_bucket(dummy_state)
@@ -201,9 +217,12 @@ if __name__ == "__main__":
                 max_x, min_x, max_y, min_y = check_for_rescale(new_state)
                 new_bucket = state_to_bucket(new_state)
                 agent.update_obs(bucket, raw_action, reward, new_bucket, 0, active_node)
+            new_borders = (max_x, min_x, max_y, min_y)
             if t % 20 == 0:
                 agent.update_policy(i)
             t = t + 1
+            if new_borders != old_borders:
+                plot_discretization(i, t)
 
             print("State #" + str(state.number))
             final_state = state.number
