@@ -212,11 +212,13 @@ if __name__ == "__main__":
             old_borders = (max_x, min_x, max_y, min_y)
             if game.is_episode_finished() and reward > TARGET_REWARD:
                 max_x, min_x, max_y, min_y = check_for_rescale(dummy_state)
+                bucket = state_to_bucket(state)  # recalculate bucket due to border changes
                 new_bucket = state_to_bucket(dummy_state)
                 agent.update_obs(bucket, raw_action, reward, new_bucket, 0, active_node)
             elif not game.is_episode_finished():
                 new_state = game.get_state()
                 max_x, min_x, max_y, min_y = check_for_rescale(new_state)
+                bucket = state_to_bucket(state)  # recalculate bucket due to border changes
                 new_bucket = state_to_bucket(new_state)
                 agent.update_obs(bucket, raw_action, reward, new_bucket, 0, active_node)
             new_borders = (max_x, min_x, max_y, min_y)
