@@ -109,11 +109,10 @@ class Tree():
         # Gets one of their state value
         child_1_state = children[0].state_val
         child_1_radius = children[0].radius
-        childe_1_theta_radius = children[0].theta_radius
+        child_1_theta_radius = children[0].theta_radius
 
         # Determines if we also need to adjust the state_leaves and carry those estimates down as well
-        if (np.min(np.max(np.abs(np.asarray(self.state_leaves)[:,0:2] - np.array(child_1_state[0:2])), axis=1)) >= child_1_radius) or \
-                (np.min(np.max(np.abs(np.asarray(self.state_leaves)[:,2:3] - np.array(child_1_state[2])), axis=1)) >= childe_1_theta_radius):
+        if np.min(np.max(np.abs(np.asarray(self.state_leaves) - np.array(child_1_state)) - [child_1_radius, child_1_radius, child_1_theta_radius], axis=1)) >= 0:
             # find parents place in state_leaves and in vEst
             parent = node.state_val
             parent_index = self.state_leaves.index(parent)
