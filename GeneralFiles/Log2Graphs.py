@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-PATH = "C:/Users/amitt/Desktop/ProjectB/ActiveGit/Uniform/Results/DiscDiff20/"
+PATH = "C:/Users/amitt/Desktop/ProjectB/ActiveGit/Uniform/Results/DiscDiff80/"
 FILES = ['2020-10-07.log']
 
 

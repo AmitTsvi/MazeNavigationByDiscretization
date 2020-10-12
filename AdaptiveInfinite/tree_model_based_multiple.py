@@ -42,11 +42,16 @@ class Node():
         # each with half the radius
     def split_node(self, flag):
         rh = self.radius/2
-        rh_theta = self.theta_radius/2
+        if self.theta_radius > 1/8:
+            rh_theta = self.theta_radius/2
+            k2_range = [-1,1]
+        else:
+            rh_theta = self.theta_radius
+            k2_range = [0]
         # creation of the children
         self.children = [Node(self.qVal, self.rEst, list.copy(self.pEst), self.num_visits, 0, self.num_splits+1,
                               (self.state_val[0]+k0*rh, self.state_val[1]+k1*rh, self.state_val[2]+k2*rh_theta),
-                              (self.action_val[0],), rh, self.rmax, self.num_actions, rh_theta) for k0 in [-1,1] for k1 in [-1,1] for k2 in [-1,1]]
+                              (self.action_val[0],), rh, self.rmax, self.num_actions, rh_theta) for k0 in [-1,1] for k1 in [-1,1] for k2 in k2_range]
         # calculating better r and q estimates based on the sample partition
         for child in self.children:
             child.samples = [s for s in self.samples if child.is_sample_in_child(s)]
@@ -141,7 +146,7 @@ class Tree():
 
             # Lastly we need to adjust the transition kernel estimates from the previous tree
             if timestep >= 1:
-                previous_tree.update_transitions_after_split(parent_index, 8, dist)
+                previous_tree.update_transitions_after_split(parent_index, len(unique_state_values), dist)
 
         return children
 

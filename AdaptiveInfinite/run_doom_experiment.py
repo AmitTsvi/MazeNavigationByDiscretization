@@ -18,33 +18,30 @@ TARGET_REWARD = 0.0
 
 
 def check_for_rescale(state):
+    x = state.game_variables[0]
+    y = state.game_variables[1]
     x_width = max_x-min_x
     y_width = max_y-min_y
     new_min_x = min_x - x_width
     new_max_x = max_x + x_width
     new_min_y = min_y - y_width
     new_max_y = max_y + y_width
+    if (min_x <= x <= max_x) and (min_y <= y <= max_y):
+        return tuple([max_x, min_x, max_y, min_y])
     # currently always rescaling by doubling on each axis
     # numbering according to graph quadrants order
-    if (state.game_variables[0] < min_x and state.game_variables[1] < min_y) or \
-            (state.game_variables[0] < min_x and state.game_variables[1] <= max_y):  # only x is out of border
+    if (x < min_x and y <= min_y+0.5*y_width) or (y < min_y and x <= min_x + 0.5 * x_width):
         agent.rescale(1)  # The current scope will be Quadrant I of the new scope
         return tuple([max_x, new_min_x, max_y, new_min_y])
-    if (state.game_variables[0] > max_x and state.game_variables[1] < min_y) or\
-            (state.game_variables[0] >= min_x and state.game_variables[1] < min_y):  # only y is out of border
+    if (x > max_x and y <= min_y+0.5*y_width) or (y < min_y and x > max_x - 0.5 * x_width):
         agent.rescale(2)  # The current scope will be Quadrant II of the new scope
         return tuple([new_max_x, min_x, max_y, new_min_y])
-    if (state.game_variables[0] > max_x and state.game_variables[1] > max_y) or \
-            (state.game_variables[0] > max_x and state.game_variables[1] >= min_y):  # only x is out of border
-        agent.rescale(3)  # The current scope will be Quadrant II of the new scope
+    if (x > max_x and y > max_y-0.5*y_width) or (y > max_y and x > max_x - 0.5 * x_width):
+        agent.rescale(3)  # The current scope will be Quadrant III of the new scope
         return tuple([new_max_x, min_x, new_max_y, min_y])
-    if (state.game_variables[0] < min_x and state.game_variables[1] > max_y) or \
-            (state.game_variables[0] <= max_x and state.game_variables[1] > max_y):  # only y is out of border
-        agent.rescale(4)  # The current scope will be Quadrant II of the new scope
+    if (x < min_x and y > max_y-0.5*y_width) or (y > max_y and x <= min_x + 0.5 * x_width):
+        agent.rescale(4)  # The current scope will be Quadrant IV of the new scope
         return tuple([max_x, new_min_x, new_max_y, min_y])
-    return tuple([max_x, min_x, max_y, min_y])
-    # assign to x_max x_min...
-    # find the scale in which to rescale (double won't always be enough?
 
 
 def add_obs_to_heat_map(state, action):
@@ -110,7 +107,7 @@ def plot_discretization(i, t):
 
 
 if __name__ == "__main__":
-    nEps = 901
+    nEps = 501
     scaling = 0
     alpha = 0
     plot_every = 50

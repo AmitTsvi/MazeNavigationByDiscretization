@@ -65,7 +65,12 @@ class AdaptiveModelBasedDiscretization(agent.FiniteHorizonAgent):
 
         # update transition kernel based off of new transition
         next_tree = tree
-        new_obs_loc = np.argmin(np.max(np.abs(np.asarray(next_tree.state_leaves) - np.array(newObs)), axis=1))
+        basic_dist_array = np.abs(np.asarray(next_tree.state_leaves) - np.array(newObs))
+        min_x_y_dist = np.min(np.max(basic_dist_array[:,0:2], axis=1))
+        min_x_y_indices = np.where(np.max(basic_dist_array[:,0:2], axis=1) == min_x_y_dist)[0]
+        possible_entries = [basic_dist_array[i][2] for i in min_x_y_indices]
+        min_theta_index = np.argmin(possible_entries)
+        new_obs_loc = min_x_y_indices[min_theta_index]
         active_node.pEst[new_obs_loc] += 1
 
         # determines if it is time to split the current ball
