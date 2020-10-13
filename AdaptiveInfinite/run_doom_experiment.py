@@ -107,7 +107,7 @@ def plot_discretization(i, t):
 
 
 if __name__ == "__main__":
-    nEps = 501
+    nEps = 901
     scaling = 0
     alpha = 0
     plot_every = 50

@@ -74,7 +74,7 @@ class AdaptiveModelBasedDiscretization(agent.FiniteHorizonAgent):
         active_node.pEst[new_obs_loc] += 1
 
         # determines if it is time to split the current ball
-        if t >= 4**active_node.num_splits and active_node.num_splits < 4:  # TODO: a wrong threshold, opened issue on git to clarify
+        if t >= 4**active_node.num_splits and active_node.num_splits < 5:  # TODO: a wrong threshold, opened issue on git to clarify
             children = tree.split_node(active_node, 10, tree)
 
     def update_policy(self, k):
