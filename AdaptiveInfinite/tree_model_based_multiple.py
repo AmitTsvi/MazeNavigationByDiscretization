@@ -42,7 +42,7 @@ class Node():
         # each with half the radius
     def split_node(self, flag):
         rh = self.radius/2
-        if self.theta_radius > 1/8:
+        if self.theta_radius > 0:
             rh_theta = self.theta_radius/2
             k2_range = [-1,1]
         else:

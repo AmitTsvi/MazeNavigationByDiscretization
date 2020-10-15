@@ -66,8 +66,8 @@ class AdaptiveModelBasedDiscretization(agent.FiniteHorizonAgent):
         # update transition kernel based off of new transition
         next_tree = tree
         basic_dist_array = np.abs(np.asarray(next_tree.state_leaves) - np.array(newObs))
-        min_x_y_dist = np.min(np.max(basic_dist_array[:,0:2], axis=1))
-        min_x_y_indices = np.where(np.max(basic_dist_array[:,0:2], axis=1) == min_x_y_dist)[0]
+        min_x_y_dist = np.min(np.sum((basic_dist_array[:,0:2])**2, axis=1))
+        min_x_y_indices = np.where(np.sum((basic_dist_array[:,0:2])**2, axis=1) == min_x_y_dist)[0]
         possible_entries = [basic_dist_array[i][2] for i in min_x_y_indices]
         min_theta_index = np.argmin(possible_entries)
         new_obs_loc = min_x_y_indices[min_theta_index]
