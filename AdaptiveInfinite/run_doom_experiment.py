@@ -221,6 +221,8 @@ if __name__ == "__main__":
             new_borders = (max_x, min_x, max_y, min_y)
             if t % 20 == 0:
                 agent.update_policy(i)
+            if t % 100 == 0:
+                agent.merge()
             t = t + 1
             if new_borders != old_borders:
                 plot_discretization(i, t)

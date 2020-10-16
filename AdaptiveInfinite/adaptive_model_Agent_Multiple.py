@@ -80,33 +80,32 @@ class AdaptiveModelBasedDiscretization(agent.FiniteHorizonAgent):
     def update_policy(self, k):
         '''Update internal policy based upon records'''
         # Solves the empirical Bellman equations
-        for h in np.arange(self.epLen-1,-1,-1):
-            # Gets the current tree for this specific time step
-            tree = self.tree_list[h]
-            next_tree = tree
-            for node in tree.tree_leaves:
-                # If the node has not been visited before - set its Q Value
-                # to be optimistic
+        tree = self.tree_list[0]
+        next_tree = tree
+        for node in tree.tree_leaves:
+            # If the node has not been visited before - set its Q Value
+            # to be optimistic
 
-                # Otherwise solve for the Q Values with the bonus term
-                psum = np.sum(np.array(node.pEst))
-                if psum > 0 and node.num_unique_visits >= 5:
-                    vEst = np.dot((np.asarray(node.pEst)) / (psum), next_tree.vEst)
-                else:
-                    vEst = 0
-                node.qEst = node.rEst + vEst
+            # Otherwise solve for the Q Values with the bonus term
+            psum = np.sum(np.array(node.pEst))
+            if psum > 0 and node.num_unique_visits >= 5:
+                vEst = np.dot((np.asarray(node.pEst)) / (psum), next_tree.vEst)
+            else:
+                vEst = 0
+            node.td_error = abs(node.qEst - (node.rEst + vEst))
+            node.qEst = node.rEst + vEst
 
-                if node.num_unique_visits < 5:  # TODO: pass as argument
-                    node.qVal = 2*self.rmax
-                else:
-                    node.qVal = node.qEst
+            if node.num_unique_visits < 5:  # TODO: pass as argument
+                node.qVal = 2*self.rmax
+            else:
+                node.qVal = node.qEst
 
-            # After updating the Q Value for each node - computes the estimate of the value function
-            index = 0
-            for state_val in tree.state_leaves:  # TODO: V can get 2RMAX from artifical q. in uniform we made sure it won't happen
-                _, qMax = tree.get_active_ball_for_update(state_val)
-                tree.vEst[index] = qMax
-                index += 1
+        # After updating the Q Value for each node - computes the estimate of the value function
+        index = 0
+        for state_val in tree.state_leaves:  # TODO: V can get 2RMAX from artifical q. in uniform we made sure it won't happen
+            _, qMax = tree.get_active_ball_for_update(state_val)
+            tree.vEst[index] = qMax
+            index += 1
 
         self.greedy = self.greedy
         pass
@@ -151,3 +150,7 @@ class AdaptiveModelBasedDiscretization(agent.FiniteHorizonAgent):
 
     def get_limits(self):
         return self.limits
+
+    def merge(self):
+        tree = self.tree_list[0]
+        tree.merge_nodes()

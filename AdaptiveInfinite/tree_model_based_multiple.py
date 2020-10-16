@@ -2,12 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import random as rnd
+from itertools import compress
 
 ''' Implementation of a tree structured used in the Adaptive Discretization Algorithm'''
 
 
 class Node():
-    def __init__(self, qVal, rEst, pEst, num_visits, num_unique_visits, num_splits, state_val, action_val, radius, rmax, num_actions, theta_radius):
+    def __init__(self, qVal, rEst, pEst, num_visits, num_unique_visits, num_splits, state_val, action_val, radius, rmax, num_actions, theta_radius, parent):
         '''args:
         qVal - estimate of the q value
         num_visits - number of visits to the node or its ancestors
@@ -30,6 +31,8 @@ class Node():
         self.qEst = 0
         self.num_actions = num_actions
         self.theta_radius = theta_radius
+        self.td_error = 0
+        self.parent = parent
 
     def is_sample_in_child(self, s):
         if np.max(np.abs(np.asarray(s[0:2]) - np.asarray(self.state_val[0:2]))) <= self.radius:
@@ -51,7 +54,7 @@ class Node():
         # creation of the children
         self.children = [Node(self.qVal, self.rEst, list.copy(self.pEst), self.num_visits, 0, self.num_splits+1,
                               (self.state_val[0]+k0*rh, self.state_val[1]+k1*rh, self.state_val[2]+k2*rh_theta),
-                              (self.action_val[0],), rh, self.rmax, self.num_actions, rh_theta) for k0 in [-1,1] for k1 in [-1,1] for k2 in k2_range]
+                              (self.action_val[0],), rh, self.rmax, self.num_actions, rh_theta, self) for k0 in [-1,1] for k1 in [-1,1] for k2 in k2_range]
         # calculating better r and q estimates based on the sample partition
         for child in self.children:
             child.samples = [s for s in self.samples if child.is_sample_in_child(s)]
@@ -70,11 +73,28 @@ class Node():
         self.samples.clear()
         return self.children
 
+    def merge_node(self):
+        dist = np.asarray([len(child.samples) for child in self.children])
+        self.samples = [s for child in self.children for s in child.samples]
+        self.num_unique_visits = len(self.samples)
+        dist = dist/self.num_unique_visits
+        for child in self.children:
+            child.samples.clear()
+        self.qVal = np.dot([child.qVal for child in self.children], dist)
+        self.rEst = np.dot([child.rEst for child in self.children], dist)
+        self.pEst = np.zeros(len(self.children[0].pEst))
+        for child in self.children:
+            self.pEst = np.array(self.pEst) + np.array(child.pEst)
+        self.pEst = self.pEst.tolist()
+        self.qEst = 0
+        self.num_splits += 1
+        return dist
+
 
 class Tree():
     # Defines a tree by the number of steps for the initialization
     def __init__(self, flag, rmax, num_actions):
-        self.head = Node(2*rmax, rmax, [0], 0, 0, 0, (0.5, 0.5, 0.5), (0.5,), 0.5, rmax, num_actions, 0.5)
+        self.head = Node(2*rmax, rmax, [0], 0, 0, 0, (0.5, 0.5, 0.5), (0.5,), 0.5, rmax, num_actions, 0.5, None)
         self.flag = flag
         self.state_leaves = [(0.5, 0.5, 0.5)]
         self.vEst = [0]
@@ -95,7 +115,7 @@ class Tree():
             centers.append(center)
             min_bord = max_bord
         for action in range(self.num_actions):
-            child = Node(2*self.rmax, self.rmax, [0], 0, 0, 0, (0.5, 0.5, 0.5), (centers[action],), 0.5, self.rmax, self.num_actions, 0.5)
+            child = Node(2*self.rmax, self.rmax, [0], 0, 0, 0, (0.5, 0.5, 0.5), (centers[action],), 0.5, self.rmax, self.num_actions, 0.5, self.head)
             children.append(child)
         return children
 
@@ -116,10 +136,12 @@ class Tree():
         child_1_radius = children[0].radius
         child_1_theta_radius = children[0].theta_radius
 
+        parent = node.state_val
         # Determines if we also need to adjust the state_leaves and carry those estimates down as well
-        if np.min(np.max(np.abs(np.asarray(self.state_leaves) - np.array(child_1_state)) - [child_1_radius, child_1_radius, child_1_theta_radius], axis=1)) >= 0:
+        if parent in self.state_leaves and \
+                np.min(np.max(np.abs(np.asarray(self.state_leaves) - np.array(child_1_state)) - [child_1_radius, child_1_radius, child_1_theta_radius], axis=1)) >= 0:
             # find parents place in state_leaves and in vEst
-            parent = node.state_val
+
             parent_index = self.state_leaves.index(parent)
             parent_vEst = self.vEst[parent_index]
             parent_unique_visits = node.num_unique_visits
@@ -314,9 +336,78 @@ class Tree():
         for action in range(self.num_actions):
             action_val = new_tree.head.children[action].action_val
             action_nodes = [Node(2*self.rmax, self.rmax, np.zeros(len(new_tree.vEst)).tolist(), 0, 0, 1,
-                                new_state_leaf, action_val, 0.25, self.rmax, self.num_actions, 0.5)
+                                new_state_leaf, action_val, 0.25, self.rmax, self.num_actions, 0.5, new_tree.head.children[action])
                                 for new_state_leaf in new_state_leaves]  # accumulating new nodes
             new_tree.head.children[action].children += action_nodes  # adding for each action branch the right nodes
             new_nodes += action_nodes
         new_tree.tree_leaves = self.tree_leaves + new_nodes  # combining to the new tree
         return new_tree
+
+    def check_all_known_leaves(self, node):
+        for child in node.children:
+            if child.children != None or child.num_unique_visits < 5:
+                return False
+        return True
+
+    def merge_nodes(self):
+        max_candidate = None
+        max_candidate_td_error = np.inf
+        for leaf in self.tree_leaves:
+            candidate = leaf.parent
+            if candidate.radius < 0.25 and self.check_all_known_leaves(candidate):
+                candidate_td_error = sum([child.td_error for child in candidate.children])
+                if candidate_td_error < max_candidate_td_error:
+                    max_candidate, max_candidate_td_error = candidate, candidate_td_error
+                if candidate_td_error == max_candidate_td_error:
+                    r = rnd.randrange(2)
+                    if r == 0:
+                        max_candidate, max_candidate_td_error = candidate, candidate_td_error
+        if max_candidate != None and len(self.tree_leaves) > 50:
+            self.merge(max_candidate)
+
+    def merge(self, node):
+        dist = node.merge_node()
+
+        # Update the list of leaves in the tree
+        for child in node.children:
+            self.tree_leaves.remove(child)
+
+        self.tree_leaves.append(node)
+
+        child_1_state = node.children[0].state_val
+        child_1_radius = node.children[0].radius
+        child_1_theta_radius = node.children[0].theta_radius
+
+        children_state_val = [child.state_val for child in node.children]
+        child_in_state_leaves = [child_state_val in self.state_leaves for child_state_val in children_state_val]
+        dist = list(compress(dist, child_in_state_leaves))
+        # Determines if we also need to adjust the state_leaves and carry those estimates down as well
+        state_leaves_without_children = [state for state in self.state_leaves if state not in children_state_val]
+        if len(state_leaves_without_children) != len(self.state_leaves) and \
+                np.min(np.max(np.abs(np.asarray(state_leaves_without_children) - np.array(child_1_state)) - [child_1_radius, child_1_radius, child_1_theta_radius], axis=1)) >= 0:
+            # find parents place in state_leaves and in vEst
+            children_indices = [self.state_leaves.index(child_state_val) for child_state_val in children_state_val if child_state_val in self.state_leaves]
+            children_vEst = [self.vEst[i] for i in children_indices]
+
+            # remove children from leaves vectors
+            for i in sorted(children_indices, reverse=True):
+                self.state_leaves.pop(i)
+                self.vEst.pop(i)
+
+            # add parent to leaves vectors
+            self.state_leaves.append(node.state_val)
+            self.vEst.append(np.dot(children_vEst, dist))
+
+            # Lastly we need to adjust the transition kernel estimates
+            self.update_transitions_after_merge(children_indices)
+
+        node.children = None
+
+    def update_transitions_after_merge(self, children_indices):
+        for node in self.tree_leaves:
+            # removing parent transition prob
+            pEst_children_sum = np.sum([node.pEst[i] for i in children_indices])
+            for i in sorted(children_indices, reverse=True):
+                node.pEst.pop(i)
+            # adding and normalizing transition prob for each unique state_val child
+            node.pEst.append(pEst_children_sum)
