@@ -88,6 +88,8 @@ class AdaptiveModelBasedDiscretization(agent.FiniteHorizonAgent):
 
             # Otherwise solve for the Q Values with the bonus term
             psum = np.sum(np.array(node.pEst))
+            # node.pEst = list(map(lambda x: x if x > 0.02*psum else 0, node.pEst))  # TODO: try
+            # psum = np.sum(np.array(node.pEst))
             if psum > 0 and node.num_unique_visits >= 5:
                 vEst = np.dot((np.asarray(node.pEst)) / (psum), next_tree.vEst)
             else:

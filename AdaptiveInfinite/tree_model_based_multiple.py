@@ -192,12 +192,12 @@ class Tree():
     # Recursive method which plots all subchildren
     def plot_node(self, node, ax):
         nodes_to_plot = {}
-        nodes = [((node.state_val[0], node.state_val[1], node.radius), node.qEst) for node in self.tree_leaves]
+        nodes = [((node.state_val[0], node.state_val[1], node.radius), (node.qEst, np.copy(node.pEst))) for node in self.tree_leaves]
         for node in nodes:
             key = node[0]
             value = node[1]
             if key in nodes_to_plot:
-                nodes_to_plot[key] = max(nodes_to_plot[key], value)
+                nodes_to_plot[key] = (max(nodes_to_plot[key][0], value[0]), (nodes_to_plot[key][1] + value[1]))
             else:
                 nodes_to_plot[key] = value
         for i, (k, v) in enumerate(nodes_to_plot.items()):
@@ -207,8 +207,13 @@ class Tree():
             rx, ry = rect.get_xy()
             cx = rx + rect.get_width() / 2.0
             cy = ry + rect.get_height() / 2.0
-            text = str(round(v, 1))
+            text = str(round(v[0], 1))
             ax.annotate(text, (cx, cy), color='b', weight='light', fontsize='xx-small', ha='center', va='center')
+            p_sum = np.sum(v[1])
+            for j, dest in enumerate(v[1]):
+                if dest > 0.01*p_sum:
+                    ax.annotate("", xy=(k[0], k[1]), xytext=(self.state_leaves[j][0], self.state_leaves[j][1]),
+                                arrowprops=dict(arrowstyle="-"))
 
     # Recursive method which gets number of subchildren
     def get_num_balls(self, node):
@@ -381,6 +386,7 @@ class Tree():
         children_state_val = [child.state_val for child in node.children]
         child_in_state_leaves = [child_state_val in self.state_leaves for child_state_val in children_state_val]
         dist = list(compress(dist, child_in_state_leaves))
+        dist = [d/sum(dist) for d in dist]
         # Determines if we also need to adjust the state_leaves and carry those estimates down as well
         state_leaves_without_children = [state for state in self.state_leaves if state not in children_state_val]
         if len(state_leaves_without_children) != len(self.state_leaves) and \

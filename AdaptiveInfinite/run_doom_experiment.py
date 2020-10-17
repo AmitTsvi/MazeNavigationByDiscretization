@@ -8,6 +8,8 @@ import datetime
 import seaborn as sns
 import pickle
 import sys, select
+import time
+import matplotlib as mpl
 
 
 DEFAULT_CONFIG = "../scenarios/my_way_home_onespawn.cfg"
@@ -94,16 +96,44 @@ def find_maze_borders(state):
 
 
 def plot_discretization(i, t):
-    fig = plt.figure(dpi=900)
+    disc_name = 'AdaptiveDiscretization_Episode#' + str(i) + '_Step#' + str(t)
+    disc_fig = plt.figure(disc_name, dpi=900)
     tree = agent.tree_list[0]
-    tree.plot(fig)
+    tree.plot(disc_fig)
     ax = plt.gca()
     for s in dummy_state.sectors:
         for l in s.lines:
             if l.is_blocking:
                 ax.plot([norm_x(l.x1), norm_x(l.x2)], [norm_y(l.y1), norm_y(l.y2)], color='black', linewidth=2)
-    fig.savefig('AdaptiveDiscretization_Episode#' + str(i) + '_Step#' + str(t), dpi=900)
+    disc_fig.savefig(disc_name, dpi=900)
+    plt.close(disc_name)
+
+
+def plot_heatmap(i):
+    heatmap_name = "Episode#" + str(i) + "_HeatMap"
+    sns.set()
+    ax = sns.heatmap(np.transpose(np.sum(n_visits, axis=(2, 3))))
+    ax.invert_yaxis()
+    heatmap_fig = ax.get_figure()
+    heatmap_fig.savefig(heatmap_name)
     plt.close()
+
+
+def plot_path(state):
+    plt.figure(path_name)
+    # Print information about objects present in the episode.
+    for o in state.objects:
+        if o.name == "DoomPlayer":
+            plt.plot(o.position_x, o.position_y, color='green', marker='o')
+        else:
+            plt.plot(o.position_x, o.position_y, color='red', marker='o')
+
+    if t == 1:
+        for s in state.sectors:
+            # Plot sector on map
+            for l in s.lines:
+                if l.is_blocking:
+                    plt.plot([l.x1, l.x2], [l.y1, l.y2], color='black', linewidth=2)
 
 
 if __name__ == "__main__":
@@ -179,6 +209,7 @@ if __name__ == "__main__":
         agent.set_limits((max_x, min_x, max_y, min_y))
 
     for i in range(nEps):
+        start = time.time()
         print("Episode #" + str(i + 1)+". 2 seconds to end run")
         q, o, e = select.select([sys.stdin], [], [], 2)  # TODO: uncomment in linux
         if (q):
@@ -192,7 +223,8 @@ if __name__ == "__main__":
             exit()
         f = open(str(datetime.datetime.now()).split()[0]+'.log', 'a')
         if PLOT and i % plot_every == 0:
-            plt.show()
+            path_name = "Episode" + str(i)
+            path_fig = plt.figure(path_name)
         game.new_episode()
         final_state = 0
         total_reward = 0
@@ -227,55 +259,24 @@ if __name__ == "__main__":
             if new_borders != old_borders:
                 plot_discretization(i, t)
                 agent.set_limits(new_borders)
-
-            print("State #" + str(state.number))
             final_state = state.number
-
             if PLOT and i % plot_every == 0:
-                # Print information about objects present in the episode.
-                for o in state.objects:
-                    if o.name == "DoomPlayer":
-                        plt.plot(o.position_x, o.position_y, color='green', marker='o')
-                    else:
-                        plt.plot(o.position_x, o.position_y, color='red', marker='o')
-
-                if t == 1:
-                    for s in state.sectors:
-                        # Plot sector on map
-                        for l in s.lines:
-                            if l.is_blocking:
-                                plt.plot([l.x1, l.x2], [l.y1, l.y2], color='black', linewidth=2)
-                plt.draw()
-                plt.pause(0.001)
+                plot_path(state)
         for j in range(VALUE_ITERATIONS):
             agent.update_policy(i)
-        print("Episode finished!")
+        end = time.time()
+        print("Episode " + str(i) + " finished! Time="+str(int(end-start)) + "seconds")
         f.write("Episode "+str(i)+" State #"+str(final_state)+" Total reward: "+str(total_reward)+"\n")
         f.close()
         if PLOT and i % plot_every == 0:
-            plt.savefig("Episode" + str(i))
-            plt.close()
-
-        if PLOT and i % plot_every == 0:
-            fig = plt.figure(dpi=900)
-            tree = agent.tree_list[0]
-            tree.plot(fig)
-            ax = plt.gca()
-            for s in dummy_state.sectors:
-                for l in s.lines:
-                    if l.is_blocking:
-                        ax.plot([norm_x(l.x1), norm_x(l.x2)], [norm_y(l.y1), norm_y(l.y2)], color='black', linewidth=2)
-            fig.savefig('AdaptiveDiscretization_Episode#'+str(i)+'_Tree#'+str(0), dpi=900)
-            plt.close()
-
-        if PLOT and i % plot_every == 0:
-            sns.set()
-            ax = sns.heatmap(np.transpose(np.sum(n_visits, axis=(2, 3))))
-            ax.invert_yaxis()
-            fig = ax.get_figure()
-            fig.savefig("Episode#"+str(i)+"_HeatMap")
-            plt.close()
-
+            # Episode path
+            path_fig.savefig(path_name)
+            plt.close(path_name)
+            # Discretization map
+            plot_discretization(i, t)
+            # Heat map
+            plot_heatmap(i)
+            mpl.style.use('default')
     if SAVE is True:
         outfile = open("PickledAgent", 'wb')
         pickle.dump(agent, outfile)
