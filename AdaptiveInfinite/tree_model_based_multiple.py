@@ -31,7 +31,7 @@ class Node():
         self.qEst = 0
         self.num_actions = num_actions
         self.theta_radius = theta_radius
-        self.td_error = 0
+        self.td_error = np.inf
         self.parent = parent
 
     def is_sample_in_child(self, s):
@@ -52,7 +52,7 @@ class Node():
             rh_theta = self.theta_radius
             k2_range = [0]
         # creation of the children
-        self.children = [Node(self.qVal, self.rEst, list.copy(self.pEst), self.num_visits, 0, self.num_splits+1,
+        self.children = [Node(self.qVal, self.rEst, np.zeros(len(self.pEst)).tolist(), self.num_visits, 0, self.num_splits+1,
                               (self.state_val[0]+k0*rh, self.state_val[1]+k1*rh, self.state_val[2]+k2*rh_theta),
                               (self.action_val[0],), rh, self.rmax, self.num_actions, rh_theta, self) for k0 in [-1,1] for k1 in [-1,1] for k2 in k2_range]
         # calculating better r and q estimates based on the sample partition
@@ -61,13 +61,10 @@ class Node():
             child.num_unique_visits = len(child.samples)
             if child.num_unique_visits >= 5:
                 child.rEst = np.average([s[4] for s in child.samples])
+                child.qVal = self.qVal
             else:
                 child.rEst = self.rmax
-                child.pEst = np.zeros(len(self.pEst)).tolist()
-            if child.num_unique_visits >= 5:  # TODO: pass as argument
-                child.qVal = self.qVal  # TODO: think
-            else:
-                child.qVal = 2*self.rmax
+                child.qVal = 2 * self.rmax
 
         # clearing fathers samples
         self.samples.clear()
@@ -81,7 +78,10 @@ class Node():
         for child in self.children:
             child.samples.clear()
         self.qVal = np.dot([child.qVal for child in self.children], dist)
-        self.rEst = np.dot([child.rEst for child in self.children], dist)
+        if child.num_unique_visits >= 5:
+            self.rEst = np.average([s[4] for s in self.samples])
+        else:
+            self.rEst = np.dot([child.rEst for child in self.children], dist)
         self.pEst = np.zeros(len(self.children[0].pEst))
         for child in self.children:
             self.pEst = np.array(self.pEst) + np.array(child.pEst)
@@ -123,7 +123,18 @@ class Tree():
     def get_head(self):
         return self.head
 
-    def split_node(self, node, timestep, previous_tree):
+    def prob_from_samples(self, child):
+        for s in child.samples:
+            newObs = s[5:]
+            basic_dist_array = np.abs(np.asarray(self.state_leaves) - np.array(newObs))
+            min_x_y_dist = np.min(np.sum((basic_dist_array[:, 0:2]) ** 2, axis=1))
+            min_x_y_indices = np.where(np.sum((basic_dist_array[:, 0:2]) ** 2, axis=1) == min_x_y_dist)[0]
+            possible_entries = [basic_dist_array[i][2] for i in min_x_y_indices]
+            min_theta_index = np.argmin(possible_entries)
+            new_obs_loc = min_x_y_indices[min_theta_index]
+            child.pEst[new_obs_loc] += 1
+
+    def split_node(self, node):
         children = node.split_node(self.flag)
 
         # Update the list of leaves in the tree
@@ -155,7 +166,7 @@ class Tree():
             for unique_state_val in unique_state_values:
                 self.state_leaves.append(unique_state_val)
                 # childvEst = np.max([child.qVal for child in children if child.state_val == unique_state_val])
-                self.vEst.append(0)  # TODO: think
+                self.vEst.append(0)
 
             # prepare transition distribution
             dist = []
@@ -166,20 +177,32 @@ class Tree():
                         sum += child.num_unique_visits
                 dist.append(sum/parent_unique_visits)
 
-            # Lastly we need to adjust the transition kernel estimates from the previous tree
-            if timestep >= 1:
-                previous_tree.update_transitions_after_split(parent_index, len(unique_state_values), dist)
+            # Lastly we need to adjust the transition kernel estimates
+            # self.update_transitions_after_split(parent_index, len(unique_state_values), dist)
+            self.update_transitions_after_split(parent_index, len(unique_state_values), dist, children)
 
+        # Fix children pEst
+        for child in children:
+            if child.num_unique_visits >= 5:
+                self.prob_from_samples(child)
         return children
 
-    def update_transitions_after_split(self, parent_index, num_children, dist):
+    # def update_transitions_after_split(self, parent_index, num_children, dist):
+    #     for node in self.tree_leaves:
+    #         # removing parent transition prob
+    #         pEst_parent = node.pEst[parent_index]
+    #         node.pEst.pop(parent_index)
+    #         # adding and normalizing transition prob for each unique state_val child
+    #         for i in range(num_children):
+    #             node.pEst.append(pEst_parent*dist[i])
+
+    def update_transitions_after_split(self, parent_index, num_children, dist, children):
         for node in self.tree_leaves:
-            # removing parent transition prob
-            pEst_parent = node.pEst[parent_index]
             node.pEst.pop(parent_index)
-            # adding and normalizing transition prob for each unique state_val child
-            for i in range(num_children):
-                node.pEst.append(pEst_parent*dist[i])
+            node.pEst += num_children*[0]
+            for child in children:
+                child_index = self.state_leaves.index(child.state_val)
+                node.pEst[child_index] = len([1 for s in node.samples if child.is_sample_in_child(s[5:]+(s[3],))])
 
     # Plot function which plots the tree on a graph on [0,1]^2 with the discretization
     def plot(self, fig):
@@ -238,7 +261,7 @@ class Tree():
             return node, node.qVal
         else:
             # Otherwise checks each child node
-            qVal = -np.inf  # TODO: think about this value (was 0)
+            qVal = -np.inf
             for child in node.children:
                 # if the child node contains the current state
                 if self.state_within_node(state, child):
@@ -265,7 +288,7 @@ class Tree():
             return node, node.qEst
         else:
             # Otherwise checks each child node
-            qEst = -np.inf  # TODO: think about this value (was 0)
+            qEst = -np.inf
             for child in node.children:
                 # if the child node contains the current state
                 if self.state_within_node(state, child):
@@ -300,19 +323,19 @@ class Tree():
         if quadrant == 1:
             node.state_val = (x/2+0.5, y/2+0.5, theta)
             if node.children == None:
-                node.samples = [(s[0]/2+0.5, s[1]/2+0.5, s[2], s[3], s[4]) for s in node.samples]
+                node.samples = [(s[0]/2+0.5, s[1]/2+0.5, s[2], s[3], s[4], s[5]/2+0.5, s[6]/2+0.5, s[7]) for s in node.samples]
         if quadrant == 2:
             node.state_val = (x/2, y/2+0.5, theta)
             if node.children == None:
-                node.samples = [(s[0]/2, s[1]/2+0.5, s[2], s[3], s[4]) for s in node.samples]
+                node.samples = [(s[0]/2, s[1]/2+0.5, s[2], s[3], s[4], s[5]/2, s[6]/2+0.5, s[7]) for s in node.samples]
         if quadrant == 3:
             node.state_val = (x/2, y/2, theta)
             if node.children == None:
-                node.samples = [(s[0]/2, s[1]/2, s[2], s[3], s[4]) for s in node.samples]
+                node.samples = [(s[0]/2, s[1]/2, s[2], s[3], s[4], s[5]/2, s[6]/2, s[7]) for s in node.samples]
         if quadrant == 4:
             node.state_val = (x/2+0.5, y/2, theta)
             if node.children == None:
-                node.samples = [(s[0]/2+0.5, s[1]/2, s[2], s[3], s[4]) for s in node.samples]
+                node.samples = [(s[0]/2+0.5, s[1]/2, s[2], s[3], s[4], s[5]/2+0.5, s[6]/2, s[7]) for s in node.samples]
         if node.children != None:
             for child in node.children:
                 self.rescale_recursion(child, quadrant)
@@ -355,6 +378,7 @@ class Tree():
         return True
 
     def merge_nodes(self):
+        return  # TODO: remove to open node merging
         max_candidate = None
         max_candidate_td_error = np.inf
         for leaf in self.tree_leaves:

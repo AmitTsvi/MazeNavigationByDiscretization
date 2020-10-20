@@ -5,56 +5,29 @@ from tree_model_based_multiple import Node, Tree
 
 class AdaptiveModelBasedDiscretization(agent.FiniteHorizonAgent):
 
-    def __init__(self, epLen, flag, rmax, num_actions):
+    def __init__(self, flag, rmax, num_actions):
         '''args:
             epLen - number of trees
         '''
-
-        self.epLen = epLen
         self.flag = flag
-
-        # List of tree's, one for each step
-        self.tree_list = []
-
-        # Makes a new partition for each step and adds it to the list of trees
-        for h in range(epLen):
-            tree = Tree(flag, rmax, num_actions)
-            self.tree_list.append(tree)
-
+        self.tree = Tree(flag, rmax, num_actions)
         self.rmax = rmax
         self.num_actions = num_actions
         self.limits = (0, 0, 0, 0)
 
     def reset(self):
         # Resets the agent by setting all parameters back to zero
-        # List of tree's, one for each step
-        self.tree_list = []
-
-        # Makes a new partition for each step and adds it to the list of trees
-        for h in range(self.epLen):
-            tree = Tree(self.flag, self.rmax, self.num_actions)
-            self.tree_list.append(tree)
-
-        # Gets the number of arms for each tree and adds them together
-    def get_num_arms(self):
-        total_size = 0
-        for tree in self.tree_list:
-            total_size += tree.get_number_of_active_balls()
-        return total_size
+        self.tree = Tree(self.flag, self.rmax, self.num_actions)
 
     def update_obs(self, obs, raw_action, reward, newObs, timestep, active_node):
         '''Add observation to records'''
-
-        ''' Gets the tree that was used at that specific timestep '''
-        tree = self.tree_list[timestep]
-
         # Increments the number of visits
         active_node.num_visits += 1
         active_node.num_unique_visits += 1
         t = active_node.num_unique_visits
 
         # Add sample to saved samples
-        active_node.samples.append(obs+(raw_action,)+(reward,))
+        active_node.samples.append(obs+(raw_action,)+(reward,)+newObs)
 
         # Update empirical estimate of average reward for that node
         if active_node.num_unique_visits == 5:
@@ -64,8 +37,7 @@ class AdaptiveModelBasedDiscretization(agent.FiniteHorizonAgent):
         # print('Mean reward: ' + str(active_node.rEst))
 
         # update transition kernel based off of new transition
-        next_tree = tree
-        basic_dist_array = np.abs(np.asarray(next_tree.state_leaves) - np.array(newObs))
+        basic_dist_array = np.abs(np.asarray(self.tree.state_leaves) - np.array(newObs))
         min_x_y_dist = np.min(np.sum((basic_dist_array[:,0:2])**2, axis=1))
         min_x_y_indices = np.where(np.sum((basic_dist_array[:,0:2])**2, axis=1) == min_x_y_dist)[0]
         possible_entries = [basic_dist_array[i][2] for i in min_x_y_indices]
@@ -74,46 +46,38 @@ class AdaptiveModelBasedDiscretization(agent.FiniteHorizonAgent):
         active_node.pEst[new_obs_loc] += 1
 
         # determines if it is time to split the current ball
-        if t >= 4**active_node.num_splits and active_node.num_splits < 5:  # TODO: a wrong threshold, opened issue on git to clarify
-            children = tree.split_node(active_node, 10, tree)
+        if t >= 4**active_node.num_splits and active_node.num_splits < 4:  # TODO: can change threshold
+            children = self.tree.split_node(active_node)
 
     def update_policy(self, k):
         '''Update internal policy based upon records'''
         # Solves the empirical Bellman equations
-        tree = self.tree_list[0]
-        next_tree = tree
-        for node in tree.tree_leaves:
+        for node in self.tree.tree_leaves:
             # If the node has not been visited before - set its Q Value
             # to be optimistic
 
             # Otherwise solve for the Q Values with the bonus term
             psum = np.sum(np.array(node.pEst))
-            # node.pEst = list(map(lambda x: x if x > 0.02*psum else 0, node.pEst))  # TODO: try
-            # psum = np.sum(np.array(node.pEst))
             if psum > 0 and node.num_unique_visits >= 5:
-                vEst = np.dot((np.asarray(node.pEst)) / (psum), next_tree.vEst)
+                vEst = np.dot((np.asarray(node.pEst)) / (psum), self.tree.vEst)
             else:
                 vEst = 0
             node.td_error = abs(node.qEst - (node.rEst + vEst))
             node.qEst = node.rEst + vEst
 
-            if node.num_unique_visits < 5:  # TODO: pass as argument
+            if node.num_unique_visits < 5:
                 node.qVal = 2*self.rmax
             else:
                 node.qVal = node.qEst
 
         # After updating the Q Value for each node - computes the estimate of the value function
         index = 0
-        for state_val in tree.state_leaves:  # TODO: V can get 2RMAX from artifical q. in uniform we made sure it won't happen
-            _, qMax = tree.get_active_ball_for_update(state_val)
-            tree.vEst[index] = qMax
+        for state_val in self.tree.state_leaves:
+            _, qMax = self.tree.get_active_ball_for_update(state_val)
+            self.tree.vEst[index] = qMax
             index += 1
 
         self.greedy = self.greedy
-        pass
-
-    def split_ball(self, node):
-        children = self.node.split_ball()
         pass
 
     def greedy(self, state, timestep):
@@ -128,11 +92,8 @@ class AdaptiveModelBasedDiscretization(agent.FiniteHorizonAgent):
             action - int
             active_node - selected node for taking action
         '''
-        # Considers the partition of the space for the current timestep
-        tree = self.tree_list[timestep]
-
         # Gets the selected ball
-        active_node, qVal = tree.get_active_ball(state)
+        active_node, qVal = self.tree.get_active_ball(state)
 
         # Picks an action uniformly in that ball
         action = active_node.action_val[0]
@@ -143,9 +104,8 @@ class AdaptiveModelBasedDiscretization(agent.FiniteHorizonAgent):
         return action, active_node
 
     def rescale(self, quadrant):
-        tree = self.tree_list[0]
-        tree = tree.rescale(quadrant)
-        self.tree_list[0] = tree
+        tree = self.tree.rescale(quadrant)
+        self.tree = tree
 
     def set_limits(self, limits):
         self.limits = limits
@@ -154,5 +114,4 @@ class AdaptiveModelBasedDiscretization(agent.FiniteHorizonAgent):
         return self.limits
 
     def merge(self):
-        tree = self.tree_list[0]
-        tree.merge_nodes()
+        self.tree.merge_nodes()

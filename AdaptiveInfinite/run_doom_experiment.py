@@ -13,6 +13,7 @@ import matplotlib as mpl
 
 
 DEFAULT_CONFIG = "../scenarios/my_way_home_onespawn.cfg"
+# DEFAULT_CONFIG = "../GeneralFiles/my_way_home_onespawn.cfg"
 PLOT = True
 LOAD = False
 SAVE = True
@@ -98,8 +99,7 @@ def find_maze_borders(state):
 def plot_discretization(i, t):
     disc_name = 'AdaptiveDiscretization_Episode#' + str(i) + '_Step#' + str(t)
     disc_fig = plt.figure(disc_name, dpi=900)
-    tree = agent.tree_list[0]
-    tree.plot(disc_fig)
+    agent.tree.plot(disc_fig)
     ax = plt.gca()
     for s in dummy_state.sectors:
         for l in s.lines:
@@ -204,14 +204,14 @@ if __name__ == "__main__":
         n_visits = np.load(f)
         f.close()
     else:
-        agent = AdaptiveModelBasedDiscretization(1, True, R_MAX, NUM_ACTIONS)
+        agent = AdaptiveModelBasedDiscretization(True, R_MAX, NUM_ACTIONS)
         n_visits = np.zeros(NUM_BUCKETS + (NUM_ACTIONS,), dtype=float)
         agent.set_limits((max_x, min_x, max_y, min_y))
 
     for i in range(nEps):
         start = time.time()
-        print("Episode #" + str(i + 1)+". 2 seconds to end run")
-        q, o, e = select.select([sys.stdin], [], [], 2)  # TODO: uncomment in linux
+        print("Episode #" + str(i)+". Press ENTER to end run")
+        q, o, e = select.select([sys.stdin], [], [], 2)
         if (q):
             outfile = open("PickledAgent", 'wb')
             pickle.dump(agent, outfile)
