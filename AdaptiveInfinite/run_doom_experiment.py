@@ -1,23 +1,15 @@
 import numpy as np
 from adaptive_model_Agent_Multiple import AdaptiveModelBasedDiscretization
-from src import agent
 import vizdoom as vzd
-from argparse import ArgumentParser
 import matplotlib.pyplot as plt
 import datetime
 import seaborn as sns
 import pickle
-import sys, select
+import sys
+import select
 import time
 import matplotlib as mpl
-
-
-DEFAULT_CONFIG = "../scenarios/my_way_home_onespawn.cfg"
-# DEFAULT_CONFIG = "../GeneralFiles/my_way_home_onespawn.cfg"
-PLOT = True
-LOAD = False
-SAVE = True
-TARGET_REWARD = 0.0
+import config
 
 
 def check_for_rescale(state):
@@ -64,8 +56,8 @@ def norm_y(y):
     return (y-min_y)/(max_y-min_y)
 
 
-def select_action(state, h):
-    raw_action, active_node = agent.pick_action(state, h)
+def select_action(state):
+    raw_action, active_node = agent.pick_action(state)
     num_actions = len(actions)
     action = int(num_actions*raw_action)
     if action == 3:  # in case the raw action is 1.0
@@ -137,24 +129,9 @@ def plot_path(state):
 
 
 if __name__ == "__main__":
-    nEps = 901
-    scaling = 0
-    alpha = 0
-    plot_every = 50
-    R_MAX = 1.0
-    VALUE_ITERATIONS = 1
-
     # Init env
-    parser = ArgumentParser("ViZDoom example showing how to use information about objects and map.")
-    parser.add_argument(dest="config",
-                        default=DEFAULT_CONFIG,
-                        nargs="?",
-                        help="Path to the configuration file of the scenario."
-                             " Please see "
-                             "../scenarios/*cfg for more scenarios.")
-    args = parser.parse_args()
     game = vzd.DoomGame()
-    game.load_config(args.config)
+    game.load_config(config.DEFAULT_CONFIG)
     game.set_render_hud(False)
     game.set_screen_resolution(vzd.ScreenResolution.RES_640X480)
     game.set_window_visible(False)
@@ -195,7 +172,7 @@ if __name__ == "__main__":
     NUM_BUCKETS = (int((max_x_heatmap-min_x_heatmap)/disc_diff), int((max_y_heatmap-min_y_heatmap)/disc_diff),
                    int((max_angle-min_angle)/disc_angle))
 
-    if LOAD is True:
+    if config.LOAD is True:
         infile = open('PickledAgent', 'rb')
         agent = pickle.load(infile)
         infile.close()
@@ -204,11 +181,11 @@ if __name__ == "__main__":
         n_visits = np.load(f)
         f.close()
     else:
-        agent = AdaptiveModelBasedDiscretization(True, R_MAX, NUM_ACTIONS)
+        agent = AdaptiveModelBasedDiscretization(NUM_ACTIONS)
         n_visits = np.zeros(NUM_BUCKETS + (NUM_ACTIONS,), dtype=float)
         agent.set_limits((max_x, min_x, max_y, min_y))
 
-    for i in range(nEps):
+    for i in range(config.NEPS):
         start = time.time()
         print("Episode #" + str(i)+". Press ENTER to end run")
         q, o, e = select.select([sys.stdin], [], [], 2)
@@ -222,7 +199,7 @@ if __name__ == "__main__":
             game.close()
             exit()
         f = open(str(datetime.datetime.now()).split()[0]+'.log', 'a')
-        if PLOT and i % plot_every == 0:
+        if config.PLOT and i % config.PLOT_EVERY == 0:
             path_name = "Episode" + str(i)
             path_fig = plt.figure(path_name)
         game.new_episode()
@@ -234,12 +211,12 @@ if __name__ == "__main__":
         while not game.is_episode_finished():
             state = game.get_state()
             bucket = state_to_bucket(state)
-            action, active_node, raw_action = select_action(bucket, 0)
+            action, active_node, raw_action = select_action(bucket)
             reward = game.make_action(actions[action], ticks)
             total_reward += reward
             add_obs_to_heat_map(state, action)
             old_borders = (max_x, min_x, max_y, min_y)
-            if game.is_episode_finished() and reward > TARGET_REWARD:
+            if game.is_episode_finished() and reward > 0:
                 max_x, min_x, max_y, min_y = check_for_rescale(dummy_state)
                 bucket = state_to_bucket(state)  # recalculate bucket due to border changes
                 new_bucket = state_to_bucket(dummy_state)
@@ -252,7 +229,7 @@ if __name__ == "__main__":
                 agent.update_obs(bucket, raw_action, reward, new_bucket, 0, active_node)
             new_borders = (max_x, min_x, max_y, min_y)
             if t % 20 == 0:
-                agent.update_policy(i)
+                agent.update_policy()
             if t % 100 == 0:
                 agent.merge()
             t = t + 1
@@ -260,15 +237,15 @@ if __name__ == "__main__":
                 plot_discretization(i, t)
                 agent.set_limits(new_borders)
             final_state = state.number
-            if PLOT and i % plot_every == 0:
+            if config.PLOT and i % config.PLOT_EVERY == 0:
                 plot_path(state)
-        for j in range(VALUE_ITERATIONS):
-            agent.update_policy(i)
+        for j in range(config.VALUE_ITERATIONS):
+            agent.update_policy()
         end = time.time()
         print("Episode " + str(i) + " finished! Time="+str(int(end-start)) + "seconds")
         f.write("Episode "+str(i)+" State #"+str(final_state)+" Total reward: "+str(total_reward)+"\n")
         f.close()
-        if PLOT and i % plot_every == 0:
+        if config.PLOT and i % config.PLOT_EVERY == 0:
             # Episode path
             path_fig.savefig(path_name)
             plt.close(path_name)
@@ -277,7 +254,7 @@ if __name__ == "__main__":
             # Heat map
             plot_heatmap(i)
             mpl.style.use('default')
-    if SAVE is True:
+    if config.SAVE is True:
         outfile = open("PickledAgent", 'wb')
         pickle.dump(agent, outfile)
         outfile.close()

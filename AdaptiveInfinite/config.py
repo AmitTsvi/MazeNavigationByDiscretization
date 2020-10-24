@@ -1,0 +1,13 @@
+NEPS = 901
+PLOT_EVERY = 50
+R_MAX = 1.0
+VALUE_ITERATIONS = 1
+VISITS_TO_KNOWN = 5
+# DEFAULT_CONFIG = "../scenarios/my_way_home_onespawn.cfg"
+DEFAULT_CONFIG = "../GeneralFiles/my_way_home_onespawn.cfg"
+PLOT = True
+LOAD = False
+SAVE = True
+TARGET_REWARD = 0.0
+MAXIMUM_LEAVES = 3000
+MAX_SPLITS = 4
